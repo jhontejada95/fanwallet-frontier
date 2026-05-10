@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0A0E1A;
+  color: white;
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #111827; }
+::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+
+/* Mobile container */
+.mobile-container {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: #0A0E1A;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(31, 41, 55, 0.8);
+}
+
+/* Glow effects */
+.glow-green {
+  box-shadow: 0 0 20px rgba(0, 166, 81, 0.3);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Field pattern background */
+.field-bg {
+  background-color: #0A0E1A;
+  background-image:
+    linear-gradient(rgba(0,166,81,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,166,81,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Gradient text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-green-gradient {
+  background: linear-gradient(135deg, #00A651, #00C661);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated gradient border */
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(0, 166, 81, 0.5); }
+  50% { border-color: rgba(0, 166, 81, 1); }
+}
+
+.border-glow-animate {
+  animation: borderGlow 2s ease-in-out infinite;
+}
+
+/* QR code styles */
+.qr-wrapper {
+  padding: 16px;
+  background: white;
+  border-radius: 16px;
+  display: inline-block;
+}
+
+/* Bottom nav safe area */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+/* Celebration overlay */
+@keyframes confettiPiece {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: confettiPiece 1.5s ease-out forwards;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #1F2937 25%, #374151 50%, #1F2937 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Number pad */
+.numpad-key {
+  @apply flex items-center justify-center h-16 rounded-2xl text-2xl font-bold
+         bg-gray-800 active:bg-gray-700 transition-all duration-75 cursor-pointer
+         select-none;
+}
+
+.numpad-key:active {
+  transform: scale(0.95);
+}
