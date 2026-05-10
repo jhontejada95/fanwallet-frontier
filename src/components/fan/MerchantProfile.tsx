@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../lib/appContext';
 import { MERCHANTS, REVIEWS } from '../../lib/mockData';
+import MerchantInsights from './MerchantInsights';
+import VanishPayment from './VanishPayment';
 
 export default function MerchantProfile() {
   const { selectedMerchant, setFanScreen, setShowPaymentSuccess } = useApp();
@@ -8,6 +10,21 @@ export default function MerchantProfile() {
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
   const [confetti, setConfetti] = useState(false);
+  const [showVanish, setShowVanish] = useState(false);
+  const BILL_AMOUNT = 12.50; // Demo: typical merchant bill amount
+
+  // Pre-computed stable confetti for merchant profile
+  const confettiPieces = useMemo(() => Array.from({ length: 20 }, (_, i) => {
+    let s = (i * 1664525 + 1013904223) >>> 0;
+    const rand = () => { s = (s * 1664525 + 1013904223) >>> 0; return (s >>> 0) / 0xffffffff; };
+    return {
+      left: `${rand() * 100}%`,
+      bg: ['#00A651', '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1'][i % 5],
+      radius: rand() > 0.5 ? '50%' : '2px',
+      delay: `${rand() * 0.5}s`,
+      duration: `${1 + rand()}s`,
+    };
+  }), []);
 
   const merchant = MERCHANTS.find(m => m.id === selectedMerchant) || MERCHANTS[0];
 
@@ -156,25 +173,55 @@ export default function MerchantProfile() {
         </div>
       </div>
 
+      {/* Insights (x402) + Pay section */}
+      <div className="px-5 pb-36">
+        <MerchantInsights merchantId={merchant.id} merchantName={merchant.name} />
+      </div>
+
+      {/* Vanish payment overlay */}
+      {showVanish && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end"
+             style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-[430px] mx-auto px-4 pb-6 animate-slide-up">
+            <VanishPayment
+              amount={BILL_AMOUNT}
+              merchantName={merchant.name}
+              onSuccess={() => { setShowVanish(false); handlePay(); }}
+              onCancel={() => setShowVanish(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Pay button */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 z-50"
-           style={{ background: 'linear-gradient(to top, rgba(10,14,26,1) 0%, transparent 100%)' }}>
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 z-40"
+           style={{ background: 'linear-gradient(to top, rgba(10,14,26,1) 60%, transparent 100%)' }}>
         {!paid ? (
-          <button
-            onClick={handlePay}
-            disabled={paying}
-            className="w-full py-4 rounded-2xl font-black text-lg text-white transition-all active:scale-95 relative overflow-hidden glow-green"
-            style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}
-          >
-            {paying ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Confirming on Solana...
-              </span>
-            ) : (
-              `⚡ Pay Here · ${merchant.pointsMultiplier}x Points`
-            )}
-          </button>
+          <div className="space-y-2">
+            {/* Vanish private pay option */}
+            <button
+              onClick={() => setShowVanish(true)}
+              className="w-full py-3 rounded-2xl font-bold text-sm text-purple-300 border border-purple-500/40 transition-all active:scale-95 flex items-center justify-center gap-2"
+              style={{ background: 'rgba(124,58,237,0.12)' }}
+            >
+              <span>🌑</span> Private Pay via Vanish
+            </button>
+            <button
+              onClick={handlePay}
+              disabled={paying}
+              className="w-full py-4 rounded-2xl font-black text-lg text-white transition-all active:scale-95 glow-green"
+              style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}
+            >
+              {paying ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Confirming on Solana...
+                </span>
+              ) : (
+                `⚡ Pay Here · ${merchant.pointsMultiplier}x Points`
+              )}
+            </button>
+          </div>
         ) : (
           <div className="w-full py-4 rounded-2xl font-black text-lg text-center"
                style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}>
@@ -186,17 +233,17 @@ export default function MerchantProfile() {
       {/* Confetti */}
       {confetti && (
         <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
-          {Array.from({ length: 20 }).map((_, i) => (
+          {confettiPieces.map((p, i) => (
             <div
               key={i}
               className="confetti-piece"
               style={{
-                left: `${Math.random() * 100}%`,
+                left: p.left,
                 top: '-10px',
-                background: ['#00A651', '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1'][i % 5],
-                borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                animationDelay: `${Math.random() * 0.5}s`,
-                animationDuration: `${1 + Math.random()}s`,
+                background: p.bg,
+                borderRadius: p.radius,
+                animationDelay: p.delay,
+                animationDuration: p.duration,
               }}
             />
           ))}

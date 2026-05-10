@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../lib/appContext';
 import { MERCHANTS, MATCHES } from '../../lib/mockData';
+import MoonPayAgent from './MoonPayAgent';
 
 interface Message {
   role: 'agent' | 'user';
@@ -51,12 +52,16 @@ const AGENT_RESPONSES: Record<string, Message> = {
   },
   split: {
     role: 'agent',
-    text: `✂️ Split bill time! How many people and what's the total? I'll send payment requests to everyone in your group instantly via Solana Pay.`,
-    action: { label: 'Open split bill', screen: 'pay' },
+    text: `✂️ Split bill time! How many people and what's the total? I'll calculate each person's share and generate a payment QR they can scan on Solana Pay.`,
+    action: { label: 'Open split bill', screen: 'split' },
+  },
+  moonpay: {
+    role: 'agent',
+    text: `💳 I'll open **MoonPay** for you — buy USDC instantly with your card, Apple Pay, or bank transfer. Funds arrive on Solana in under 2 minutes.\n\nAvailable in 160+ countries · PCI DSS compliant`,
   },
   default: {
     role: 'agent',
-    text: `I can help you:\n• 💳 **Pay** at any merchant\n• 🔁 **Deposit** crypto from any chain\n• 🌮 **Recommend** top spots near you\n• ⚽ **Check** your GoalPoints\n• ✂️ **Split** the bill with friends\n\nWhat do you need?`,
+    text: `I can help you:\n• 💳 **Pay** at any merchant\n• 🔁 **Deposit** crypto from any chain\n• 🌙 **Buy USDC** with your card via MoonPay\n• 🌮 **Recommend** top spots near you\n• ⚽ **Check** your GoalPoints\n• ✂️ **Split** the bill with friends\n\nWhat do you need?`,
   },
 };
 
@@ -67,15 +72,18 @@ function detectIntent(text: string): string {
   if (t.includes('recommend') || t.includes('recomiend') || t.includes('best') || t.includes('where') || t.includes('donde')) return 'recommend';
   if (t.includes('point') || t.includes('punto') || t.includes('goal')) return 'points';
   if (t.includes('split') || t.includes('divide') || t.includes('group')) return 'split';
+  if (t.includes('moonpay') || t.includes('buy') || t.includes('card') || t.includes('top up') || t.includes('fiat') || t.includes('cash')) return 'moonpay';
   return 'default';
 }
 
 export default function FanAgent({ onClose }: { onClose: () => void }) {
-  const { setFanScreen, setSelectedMerchant } = useApp();
+  const { setFanScreen, setSelectedMerchant, balance } = useApp();
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
+  const [showMoonPay, setShowMoonPay] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const displayBalance = balance > 0 ? balance : 124.50;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -90,6 +98,23 @@ export default function FanAgent({ onClose }: { onClose: () => void }) {
 
     setTimeout(() => {
       const intent = detectIntent(input);
+      if (intent === 'moonpay') {
+        setMessages(prev => [...prev, AGENT_RESPONSES['moonpay']]);
+        setTyping(false);
+        setTimeout(() => setShowMoonPay(true), 600);
+        return;
+      }
+      // If balance is low and user asks about paying, proactively suggest MoonPay
+      if (intent === 'pay' && displayBalance < 10) {
+        const lowBalMsg: Message = {
+          role: 'agent',
+          text: `⚠️ Your balance is **$${displayBalance.toFixed(2)}** — that might not be enough. Want me to open **MoonPay** to top up quickly?`,
+          action: { label: 'Open MoonPay', screen: 'deposit' },
+        };
+        setMessages(prev => [...prev, lowBalMsg]);
+        setTyping(false);
+        return;
+      }
       const response = AGENT_RESPONSES[intent];
       setMessages(prev => [...prev, response]);
       setTyping(false);
@@ -98,6 +123,7 @@ export default function FanAgent({ onClose }: { onClose: () => void }) {
 
   const handleAction = (action: Message['action']) => {
     if (!action) return;
+    if (action.label === 'Open MoonPay') { setShowMoonPay(true); return; }
     if (action.merchantId) setSelectedMerchant(action.merchantId);
     if (action.screen) setFanScreen(action.screen as any);
     onClose();
@@ -105,6 +131,30 @@ export default function FanAgent({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
+      {showMoonPay && (
+        <div className="absolute inset-0 z-10 flex flex-col max-w-[430px] mx-auto w-full"
+             style={{ background: '#0A0E1A' }}>
+          <div className="flex items-center gap-3 px-5 pt-12 pb-4 border-b border-gray-800">
+            <button
+              onClick={() => setShowMoonPay(false)}
+              className="w-10 h-10 rounded-2xl glass-card border border-gray-700 flex items-center justify-center text-white"
+            >
+              ←
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 font-black text-sm">M</div>
+              <h2 className="font-black text-white">MoonPay · Buy/Sell USDC</h2>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <MoonPayAgent
+              triggeredByAgent
+              onComplete={(amt) => { setShowMoonPay(false); }}
+              onDismiss={() => setShowMoonPay(false)}
+            />
+          </div>
+        </div>
+      )}
       <div className="flex-1 flex flex-col max-w-[430px] mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-12 pb-4">
@@ -169,7 +219,7 @@ export default function FanAgent({ onClose }: { onClose: () => void }) {
         {/* Quick prompts */}
         <div className="px-5 mb-3">
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {['💳 Pay somewhere', '🌮 Recommend a spot', '⚽ My points', '✂️ Split bill'].map(p => (
+            {['💳 Pay somewhere', '🌙 Buy USDC', '🌮 Recommend a spot', '⚽ My points', '✂️ Split bill'].map(p => (
               <button
                 key={p}
                 onClick={() => { setInput(p); }}
