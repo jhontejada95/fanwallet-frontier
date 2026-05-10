@@ -1,27 +1,55 @@
 import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
 import { MERCHANTS } from '../../lib/mockData';
+import { submitReview as submitOnChain, explorerUrl, getFanAccount } from '../../lib/solana';
 
 export default function LeaveReview() {
-  const { selectedMerchant, setFanScreen, setGoalPoints, goalPoints } = useApp();
+  const {
+    selectedMerchant, setFanScreen, setGoalPoints, goalPoints,
+    walletConnected, getProvider, refreshBalances,
+  } = useApp();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [text, setText] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [txSig, setTxSig] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
   const [catRatings, setCatRatings] = useState({ food: 0, service: 0, value: 0, atmosphere: 0 });
 
   const merchant = MERCHANTS.find(m => m.id === selectedMerchant) || MERCHANTS[0];
   const pointsEarned = 50 + (text.length > 20 ? 25 : 0);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) return;
     setSubmitting(true);
-    setTimeout(() => {
+    setTxError(null);
+    try {
+      if (walletConnected) {
+        const provider = getProvider();
+        if (!provider) throw new Error('No wallet');
+        const merchantWallet = merchant.walletAddress || 'CFi9X3i1hB6eFfLsapSmkPovCRDqhFAGa5a3LeYP3g';
+        // Get current review index from fan account
+        let reviewIndex = 0;
+        try {
+          const fanData = await getFanAccount(provider, provider.wallet.publicKey);
+          reviewIndex = fanData?.reviewsSubmitted ?? 0;
+        } catch { /* use 0 */ }
+        const comment = text || 'Great experience!';
+        const sig = await submitOnChain(provider, merchantWallet, rating, comment, reviewIndex);
+        setTxSig(sig);
+        await refreshBalances();
+      } else {
+        await new Promise(r => setTimeout(r, 1500));
+        setGoalPoints(goalPoints + pointsEarned);
+      }
       setSubmitting(false);
       setSubmitted(true);
-      setGoalPoints(goalPoints + pointsEarned);
-    }, 1500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Submission failed';
+      setTxError(msg.slice(0, 80));
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -35,6 +63,16 @@ export default function LeaveReview() {
           </div>
           <h2 className="text-2xl font-black text-white mb-2">Review Submitted!</h2>
           <p className="text-gray-400 mb-1">Verified on-chain · Powered by Solana</p>
+          {txSig && (
+            <a
+              href={explorerUrl(txSig)}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-brand-green underline"
+            >
+              View on Solana Explorer ↗
+            </a>
+          )}
 
           <div className="glass-card rounded-2xl p-4 mt-6 border border-yellow-500/30">
             <p className="text-yellow-400 font-black text-2xl">+{pointsEarned} GoalPoints</p>

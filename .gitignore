@@ -28,3 +28,12 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Anchor / Rust build artifacts
+target/
+.anchor/
+test-ledger/
+
+# Solana keypairs (never commit)
+*.json.bak
+deploy-keypair.json

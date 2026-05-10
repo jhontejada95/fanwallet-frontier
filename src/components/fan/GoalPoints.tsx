@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
+/**
+ * GoalPoints — Level 3 upgrade
+ *
+ * Real on-chain SPL token balance from Solana devnet.
+ * Redeem burns tokens via the fanwallet program.
+ * Falls back to mock state when wallet not connected.
+ */
+
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../lib/appContext';
+import { redeemPoints as redeemOnChain, explorerUrl } from '../../lib/solana';
 
 const EARN_WAYS = [
   { icon: '💳', label: 'Per payment', desc: '1 pt per $1 spent', pts: '+1/USD' },
@@ -25,19 +34,49 @@ const HISTORY = [
 ];
 
 export default function GoalPoints() {
-  const { goalPoints, setGoalPoints } = useApp();
+  const {
+    goalPoints, setGoalPoints, walletConnected, chainLoading,
+    worldIdVerified, getProvider, refreshBalances,
+  } = useApp();
+
   const [tab, setTab] = useState<'earn' | 'redeem' | 'history'>('earn');
   const [redeemAmt, setRedeemAmt] = useState<number | null>(null);
+  const [redeeming, setRedeeming] = useState(false);
   const [redeemed, setRedeemed] = useState(false);
+  const [txSig, setTxSig] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
 
-  const handleRedeem = (pts: number) => {
+  const handleRedeem = async (pts: number) => {
     if (goalPoints < pts) return;
     setRedeemAmt(pts);
-    setTimeout(() => {
-      setGoalPoints(goalPoints - pts);
+    setRedeeming(true);
+    setTxError(null);
+
+    try {
+      if (walletConnected) {
+        const provider = getProvider();
+        if (!provider) throw new Error('No wallet');
+        const sig = await redeemOnChain(provider, pts);
+        setTxSig(sig);
+        await refreshBalances();
+      } else {
+        // Mock fallback
+        await new Promise(r => setTimeout(r, 900));
+        setGoalPoints(goalPoints - pts);
+      }
       setRedeemed(true);
-      setTimeout(() => { setRedeemed(false); setRedeemAmt(null); }, 3000);
-    }, 800);
+      setTimeout(() => {
+        setRedeemed(false);
+        setRedeemAmt(null);
+        setTxSig(null);
+      }, 4000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Redemption failed';
+      setTxError(msg.slice(0, 80));
+      setRedeemAmt(null);
+    } finally {
+      setRedeeming(false);
+    }
   };
 
   return (
@@ -45,100 +84,175 @@ export default function GoalPoints() {
       {/* Header */}
       <div className="px-5 pt-12 pb-6"
            style={{ background: 'linear-gradient(180deg, rgba(255,215,0,0.08) 0%, transparent 100%)' }}>
-        <h1 className="text-xl font-black text-white mb-6">GoalPoints</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-black text-white">GoalPoints</h1>
+          {walletConnected && (
+            <span className="text-xs text-green-400 font-semibold bg-green-400/10 px-2 py-1 rounded-full">
+              ⚡ On-chain SPL
+            </span>
+          )}
+        </div>
 
-        {/* Balance */}
+        {/* Balance card */}
         <div className="rounded-3xl p-6 text-center relative overflow-hidden"
              style={{ background: 'linear-gradient(135deg, #1a1500, #2d2400, #1a1500)', border: '1px solid rgba(255,215,0,0.3)' }}>
           <div className="absolute inset-0 opacity-5 flex items-center justify-center text-[120px]">⚽</div>
           <p className="text-yellow-500/70 text-sm font-medium mb-1">Your Balance</p>
-          <h2 className="text-5xl font-black text-gold-gradient mb-1">{goalPoints.toLocaleString()}</h2>
-          <p className="text-yellow-500/70 text-sm">≈ ${(goalPoints / 100).toFixed(2)} redeemable</p>
+          {chainLoading ? (
+            <div className="flex items-center justify-center gap-2 py-3">
+              <span className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              <h2 className="text-5xl font-black text-yellow-400 mb-1">{goalPoints.toLocaleString()}</h2>
+              <p className="text-yellow-500/70 text-sm">≈ ${(goalPoints / 100).toFixed(2)} redeemable</p>
+            </>
+          )}
+
+          {/* World ID 2x multiplier badge */}
+          {worldIdVerified && (
+            <div className="mt-3 inline-flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
+              <span className="text-xs">🌐</span>
+              <span className="text-xs text-yellow-400 font-bold">2x Multiplier Active (World ID)</span>
+            </div>
+          )}
+
           <div className="mt-4 flex justify-center gap-4 text-xs text-yellow-800">
             <span>🏪 Valid at all FanWallet merchants</span>
           </div>
+
+          {/* Refresh */}
+          {walletConnected && (
+            <button
+              onClick={refreshBalances}
+              className="mt-2 text-xs text-yellow-700 hover:text-yellow-500"
+            >
+              ↻ Refresh balance
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="px-5 mb-4">
-        <div className="flex glass-card rounded-2xl p-1 border border-gray-700">
+      <div className="px-5">
+        <div className="flex glass-card rounded-2xl border border-gray-700 p-1 mb-5">
           {(['earn', 'redeem', 'history'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-2 rounded-xl text-sm font-bold capitalize transition-all ${
-                tab === t ? 'bg-yellow-500 text-black' : 'text-gray-400'
+                tab === t
+                  ? 'bg-brand-green text-white'
+                  : 'text-gray-400 hover:text-white'
               }`}
             >
               {t}
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="px-5 flex-1 overflow-y-auto pb-8">
+        {/* EARN */}
         {tab === 'earn' && (
-          <div className="space-y-3 animate-fade-in">
-            <p className="text-gray-400 text-sm mb-4">Ways to earn GoalPoints</p>
-            {EARN_WAYS.map(way => (
-              <div key={way.label} className="glass-card rounded-2xl p-4 border border-gray-700 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-2xl">
-                  {way.icon}
-                </div>
+          <div className="space-y-3 pb-8">
+            {EARN_WAYS.map((way, i) => (
+              <div key={i} className="glass-card rounded-2xl p-4 border border-gray-700 flex items-center gap-4">
+                <span className="text-2xl">{way.icon}</span>
                 <div className="flex-1">
-                  <p className="font-bold text-white">{way.label}</p>
+                  <p className="font-semibold text-white">{way.label}</p>
                   <p className="text-xs text-gray-400">{way.desc}</p>
                 </div>
-                <span className="font-black text-yellow-400 text-sm">{way.pts} pts</span>
+                <span className="font-black text-brand-green">{way.pts}</span>
               </div>
             ))}
+
+            {/* World ID bonus info */}
+            <div className="glass-card rounded-2xl p-4 border border-yellow-500/30 flex items-center gap-4"
+                 style={{ background: 'rgba(255,215,0,0.04)' }}>
+              <span className="text-2xl">🌐</span>
+              <div className="flex-1">
+                <p className="font-semibold text-yellow-400">World ID Verification</p>
+                <p className="text-xs text-gray-400">Verify humanity → earn 2x on all payments</p>
+              </div>
+              <span className="font-black text-yellow-400">2×</span>
+            </div>
           </div>
         )}
 
+        {/* REDEEM */}
         {tab === 'redeem' && (
-          <div className="animate-fade-in">
-            <p className="text-gray-400 text-sm mb-4">Redeem at any FanWallet merchant</p>
-            {redeemed && (
-              <div className="rounded-2xl p-4 border border-brand-green bg-brand-green/10 mb-4 animate-bounce-in text-center">
-                <p className="text-brand-green font-bold">✓ Redeemed! QR discount applied</p>
+          <div className="space-y-3 pb-8">
+            {txError && (
+              <div className="text-xs text-red-400 bg-red-900/20 rounded-xl px-3 py-2">
+                ⚠ {txError}
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              {REDEEM_OPTIONS.map(opt => (
-                <button
-                  key={opt.pts}
-                  onClick={() => handleRedeem(opt.pts)}
-                  disabled={goalPoints < opt.pts}
-                  className={`glass-card rounded-2xl p-4 border text-center transition-all active:scale-95 disabled:opacity-40 ${
-                    goalPoints >= opt.pts ? 'border-yellow-500/30 hover:border-yellow-500' : 'border-gray-700'
-                  }`}
-                >
-                  <p className="text-2xl font-black text-gold-gradient">{opt.value}</p>
-                  <p className="text-yellow-500/70 text-sm font-bold">{opt.pts.toLocaleString()} pts</p>
-                  <p className="text-xs text-gray-500 mt-1">{opt.desc}</p>
-                </button>
-              ))}
-            </div>
+            {redeemed && txSig && (
+              <div className="text-xs text-green-400 bg-green-900/20 rounded-xl px-3 py-2 text-center">
+                ✓ Burned on-chain ·{' '}
+                <a href={explorerUrl(txSig)} target="_blank" rel="noreferrer" className="underline">
+                  View tx
+                </a>
+              </div>
+            )}
+            {redeemed && !txSig && (
+              <div className="text-xs text-green-400 bg-green-900/20 rounded-xl px-3 py-2 text-center">
+                ✓ {redeemAmt} GoalPoints redeemed!
+              </div>
+            )}
 
-            <div className="mt-6 glass-card rounded-2xl p-4 border border-gray-700">
-              <p className="text-sm font-bold text-white mb-1">How redemption works</p>
-              <p className="text-xs text-gray-400">Select amount above → Show QR at merchant → Discount applied automatically to your payment.</p>
-            </div>
+            {REDEEM_OPTIONS.map(opt => (
+              <div
+                key={opt.pts}
+                className={`glass-card rounded-2xl p-4 border flex items-center gap-4 ${
+                  goalPoints >= opt.pts ? 'border-gray-700' : 'border-gray-800 opacity-40'
+                }`}
+              >
+                <div className="text-center">
+                  <p className="text-yellow-400 font-black text-lg">{opt.pts}</p>
+                  <p className="text-xs text-gray-500">pts</p>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-white">{opt.value} USDC</p>
+                  <p className="text-xs text-gray-400">{opt.desc}</p>
+                </div>
+                <button
+                  onClick={() => handleRedeem(opt.pts)}
+                  disabled={goalPoints < opt.pts || redeeming}
+                  className="px-4 py-2 rounded-xl font-bold text-sm text-white transition-all active:scale-95 disabled:opacity-40"
+                  style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}
+                >
+                  {redeeming && redeemAmt === opt.pts ? (
+                    <span className="flex items-center gap-1">
+                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {walletConnected ? 'Burning...' : 'Redeeming...'}
+                    </span>
+                  ) : (
+                    'Redeem'
+                  )}
+                </button>
+              </div>
+            ))}
+
+            {!walletConnected && (
+              <p className="text-xs text-gray-600 text-center py-4">
+                Connect wallet to burn GoalPoints on-chain
+              </p>
+            )}
           </div>
         )}
 
+        {/* HISTORY */}
         {tab === 'history' && (
-          <div className="space-y-2 animate-fade-in">
-            {HISTORY.map((item, i) => (
-              <div key={i} className="glass-card rounded-2xl px-4 py-3 border border-gray-700 flex items-center gap-3">
-                <span className="text-xl">{item.icon}</span>
+          <div className="space-y-2 pb-8">
+            {HISTORY.map((h, i) => (
+              <div key={i} className="flex items-center gap-3 glass-card rounded-2xl p-3 border border-gray-800">
+                <span className="text-xl">{h.icon}</span>
                 <div className="flex-1">
-                  <p className="font-semibold text-white text-sm">{item.label}</p>
-                  <p className="text-xs text-gray-500">{item.date}</p>
+                  <p className="text-sm text-gray-300">{h.label}</p>
+                  <p className="text-xs text-gray-600">{h.date}</p>
                 </div>
-                <span className={`font-black text-sm ${item.pts > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                  {item.pts > 0 ? '+' : ''}{item.pts} pts
+                <span className={`font-black text-sm ${h.pts > 0 ? 'text-brand-green' : 'text-red-400'}`}>
+                  {h.pts > 0 ? '+' : ''}{h.pts}
                 </span>
               </div>
             ))}

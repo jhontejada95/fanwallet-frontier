@@ -5,19 +5,26 @@ import FanAgent from './FanAgent';
 import WorldIDVerify from './WorldIDVerify';
 
 export default function Dashboard() {
-  const { balance, goalPoints, selectedCountry, setFanScreen, setSelectedMerchant } = useApp();
+  const {
+    balance, goalPoints, selectedCountry, setFanScreen, setSelectedMerchant,
+    walletAddress, walletConnected, worldIdVerified, chainLoading,
+    refreshBalances,
+  } = useApp();
   const [showAgent, setShowAgent] = useState(false);
   const [showWorldID, setShowWorldID] = useState(false);
-  const [worldVerified, setWorldVerified] = useState(false);
 
-  const displayBalance = balance > 0 ? balance : 124.50;
+  const worldVerified = worldIdVerified;
+  const displayBalance = walletConnected ? balance : (balance > 0 ? balance : 124.50);
+  const shortAddr = walletAddress
+    ? walletAddress.slice(0, 4) + '...' + walletAddress.slice(-4)
+    : null;
 
   return (
     <div className="min-h-screen field-bg overflow-y-auto">
       {showAgent && <FanAgent onClose={() => setShowAgent(false)} />}
       {showWorldID && (
         <WorldIDVerify
-          onVerified={() => { setWorldVerified(true); setShowWorldID(false); }}
+          onVerified={() => { setShowWorldID(false); }}
           onSkip={() => setShowWorldID(false)}
         />
       )}
@@ -59,11 +66,25 @@ export default function Dashboard() {
              style={{ background: 'linear-gradient(135deg, #007A3D, #00A651, #00C661)' }}>
           <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10"
                style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translate(30%, -30%)' }} />
-          <p className="text-green-100 text-sm font-medium mb-1">Total Balance</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-green-100 text-sm font-medium">Total Balance</p>
+            {walletConnected && (
+              <button onClick={refreshBalances} className="text-green-200/60 text-xs hover:text-white">↻</button>
+            )}
+          </div>
           <h2 className="text-4xl font-black text-white mb-1">
-            ${displayBalance.toFixed(2)}{' '}
-            <span className="text-xl font-medium opacity-80">USDC</span>
+            {chainLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+              </span>
+            ) : (
+              <>{walletConnected ? `$${balance.toFixed(2)}` : `$${displayBalance.toFixed(2)}`}{' '}
+              <span className="text-xl font-medium opacity-80">USDC</span></>
+            )}
           </h2>
+          {shortAddr && (
+            <p className="text-green-200/60 text-xs font-mono mb-1">⚡ {shortAddr} · devnet</p>
+          )}
           <p className="text-green-100 text-sm">
             {selectedCountry?.currency === 'MXN'
               ? '≈ MXN 2,190'

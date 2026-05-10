@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useApp } from '../../lib/appContext';
+import { verifyWorldId, explorerUrl } from '../../lib/solana';
 
 interface Props {
   onVerified: () => void;
@@ -6,15 +8,47 @@ interface Props {
 }
 
 export default function WorldIDVerify({ onVerified, onSkip }: Props) {
+  const { walletConnected, getProvider, setWorldIdVerified } = useApp();
   const [state, setState] = useState<'idle' | 'scanning' | 'verified'>('idle');
+  const [txSig, setTxSig] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     setState('scanning');
-    // Simulate World ID ZK proof generation
-    setTimeout(() => {
+    setTxError(null);
+    try {
+      // Simulate World ID ZK proof generation (2s UX delay)
+      await new Promise(r => setTimeout(r, 2000));
+      
+      if (walletConnected) {
+        const provider = getProvider();
+        if (provider) {
+          // Generate a deterministic nullifier from wallet pubkey
+          // In production this comes from the World ID SDK proof
+          const pubkeyBytes = provider.wallet.publicKey.toBytes();
+          const nullifier = new Array(32).fill(0).map((_, i) => pubkeyBytes[i % 32] ^ (i * 7));
+          const nullifierHex = nullifier.map(b => b.toString(16).padStart(2, '0')).join('');
+          
+          const sig = await verifyWorldId(provider, nullifierHex);
+          setTxSig(sig);
+        }
+      }
+      
+      setWorldIdVerified(true);
       setState('verified');
-      setTimeout(onVerified, 1500);
-    }, 2000);
+      setTimeout(() => onVerified(), 1800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Verification failed';
+      // If already verified on-chain, treat as success
+      if (msg.includes('AlreadyVerified') || msg.includes('already')) {
+        setWorldIdVerified(true);
+        setState('verified');
+        setTimeout(() => onVerified(), 1800);
+      } else {
+        setTxError(msg.slice(0, 80));
+        setState('idle');
+      }
+    }
   };
 
   return (
@@ -29,6 +63,12 @@ export default function WorldIDVerify({ onVerified, onSkip }: Props) {
             </div>
             <h3 className="text-xl font-black text-white">Verified Human!</h3>
             <p className="text-brand-green text-sm mt-1">World ID proof confirmed · 2x GoalPoints unlocked</p>
+            {txSig && (
+              <a href={explorerUrl(txSig)} target="_blank" rel="noreferrer"
+                 className="text-xs text-gray-400 underline mt-2 block">
+                View on Solana Explorer ↗
+              </a>
+            )}
           </div>
         ) : (
           <>

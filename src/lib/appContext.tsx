@@ -1,10 +1,35 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+/**
+ * AppContext — FanWallet global state
+ *
+ * Level 3 upgrade: integrates real on-chain data when a wallet is connected.
+ * Falls back to mock values (balance=0, goalPoints=342) when disconnected
+ * so the app remains fully navigable as a demo without a wallet.
+ */
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { AnchorProvider } from '@coral-xyz/anchor';
+import {
+  getUsdcBalance,
+  getGoalPointsBalance,
+  getFanAccount,
+  initializeFan,
+  makeProvider,
+} from './solana';
 
 export type AppRole = 'picker' | 'fan' | 'business';
 export type FanScreen =
   | 'splash' | 'onboarding' | 'dashboard' | 'deposit'
   | 'pay' | 'send' | 'split' | 'map' | 'merchant'
-  | 'review' | 'goalpoints' | 'stamps' | 'profile';
+  | 'review' | 'goalpoints' | 'stamps' | 'profile'
+  | 'agent' | 'worldid' | 'smartWallet';
 export type BizScreen =
   | 'dashboard' | 'pos' | 'analytics' | 'deals' | 'reviews'
   | 'loyalty' | 'profile-editor' | 'reports' | 'qr-generator';
@@ -21,6 +46,13 @@ interface AppState {
   posAmount: string;
   showPOSSuccess: boolean;
 
+  // On-chain state
+  walletAddress: string | null;
+  walletConnected: boolean;
+  worldIdVerified: boolean;
+  fanInitialized: boolean;
+  chainLoading: boolean;
+
   setRole: (role: AppRole) => void;
   setFanScreen: (screen: FanScreen) => void;
   setBizScreen: (screen: BizScreen) => void;
@@ -31,23 +63,124 @@ interface AppState {
   setShowPaymentSuccess: (v: boolean) => void;
   setPosAmount: (a: string) => void;
   setShowPOSSuccess: (v: boolean) => void;
+  setWorldIdVerified: (v: boolean) => void;
   goToFan: (screen: FanScreen) => void;
   goToBiz: (screen: BizScreen) => void;
+  refreshBalances: () => Promise<void>;
+  getProvider: () => AnchorProvider | null;
 }
 
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { connection } = useConnection();
+  const wallet = useWallet();
+
   const [role, setRole] = useState<AppRole>('picker');
   const [fanScreen, setFanScreen] = useState<FanScreen>('splash');
   const [bizScreen, setBizScreen] = useState<BizScreen>('dashboard');
   const [selectedCountry, setSelectedCountry] = useState<AppState['selectedCountry']>(null);
+
+  // Balance state — real on-chain when connected, mock otherwise
   const [balance, setBalance] = useState(0);
   const [goalPoints, setGoalPoints] = useState(342);
+
   const [selectedMerchant, setSelectedMerchant] = useState<string | null>(null);
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [posAmount, setPosAmount] = useState('');
   const [showPOSSuccess, setShowPOSSuccess] = useState(false);
+
+  // On-chain state
+  const [worldIdVerified, setWorldIdVerified] = useState(false);
+  const [fanInitialized, setFanInitialized] = useState(false);
+  const [chainLoading, setChainLoading] = useState(false);
+
+  const walletAddress = wallet.publicKey?.toBase58() ?? null;
+  const walletConnected = wallet.connected && !!wallet.publicKey;
+
+  // Build AnchorProvider from connected wallet
+  const getProvider = useCallback((): AnchorProvider | null => {
+    if (!wallet.publicKey || !wallet.signTransaction || !wallet.signAllTransactions) {
+      return null;
+    }
+    return makeProvider({
+      publicKey: wallet.publicKey,
+      signTransaction: wallet.signTransaction,
+      signAllTransactions: wallet.signAllTransactions,
+    });
+  }, [wallet]);
+
+  // Refresh on-chain balances and fan account state
+  const refreshBalances = useCallback(async () => {
+    if (!wallet.publicKey) return;
+    setChainLoading(true);
+    try {
+      const [usdc, gp] = await Promise.all([
+        getUsdcBalance(wallet.publicKey),
+        getGoalPointsBalance(wallet.publicKey),
+      ]);
+      setBalance(usdc);
+      setGoalPoints(gp);
+
+      // Also check fan account
+      const provider = getProvider();
+      if (provider) {
+        const fanData = await getFanAccount(provider, wallet.publicKey);
+        if (fanData) {
+          setFanInitialized(true);
+          setWorldIdVerified(fanData.worldIdVerified);
+          // Use on-chain values if they differ
+          if (gp > 0 || fanData.totalPointsEarned > 0) {
+            setGoalPoints(Math.max(gp, fanData.totalPointsEarned));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[FanWallet] Balance refresh error:', err);
+    } finally {
+      setChainLoading(false);
+    }
+  }, [wallet.publicKey, getProvider]);
+
+  // Auto-refresh balances on wallet connect/disconnect
+  useEffect(() => {
+    if (walletConnected && wallet.publicKey) {
+      refreshBalances();
+    } else {
+      // Reset to mock values when disconnected
+      setBalance(0);
+      setGoalPoints(342);
+      setFanInitialized(false);
+      setWorldIdVerified(false);
+    }
+  }, [walletConnected, wallet.publicKey]);
+
+  // Auto-initialize fan account when a new wallet connects
+  useEffect(() => {
+    if (!walletConnected || fanInitialized || chainLoading) return;
+
+    const tryInit = async () => {
+      const provider = getProvider();
+      if (!provider) return;
+      try {
+        await initializeFan(provider, 'Fan');
+        setFanInitialized(true);
+        console.log('[FanWallet] Fan account initialized on-chain');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Account may already exist (init_if_needed) — that's fine
+        if (msg.includes('already in use') || msg.includes('custom program error')) {
+          setFanInitialized(true);
+        } else {
+          console.warn('[FanWallet] Fan init (non-critical):', msg);
+        }
+      }
+    };
+
+    // Delay slightly to allow wallet adapter to settle
+    const timer = setTimeout(tryInit, 1500);
+    return () => clearTimeout(timer);
+  }, [walletConnected, fanInitialized, chainLoading, getProvider]);
 
   const goToFan = (screen: FanScreen) => {
     setRole('fan');
@@ -60,13 +193,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AppContext.Provider value={{
-      role, fanScreen, bizScreen, selectedCountry, balance, goalPoints,
-      selectedMerchant, showPaymentSuccess, posAmount, showPOSSuccess,
-      setRole, setFanScreen, setBizScreen, setSelectedCountry, setBalance,
-      setGoalPoints, setSelectedMerchant, setShowPaymentSuccess,
-      setPosAmount, setShowPOSSuccess, goToFan, goToBiz,
-    }}>
+    <AppContext.Provider
+      value={{
+        role, fanScreen, bizScreen, selectedCountry,
+        balance, goalPoints, selectedMerchant,
+        showPaymentSuccess, posAmount, showPOSSuccess,
+        walletAddress, walletConnected, worldIdVerified,
+        fanInitialized, chainLoading,
+        setRole, setFanScreen, setBizScreen, setSelectedCountry,
+        setBalance, setGoalPoints, setSelectedMerchant,
+        setShowPaymentSuccess, setPosAmount, setShowPOSSuccess,
+        setWorldIdVerified, goToFan, goToBiz,
+        refreshBalances, getProvider,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

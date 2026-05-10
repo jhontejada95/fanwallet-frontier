@@ -38,7 +38,7 @@ export default function FanApp() {
       case 'profile': return <FanProfile />;
       case 'send': return <Send />;
       case 'split': return <Split />;
-      case 'agent': return <FanAgent />;
+      case 'agent': return <FanAgent onClose={() => setFanScreen('dashboard')} />;
       case 'worldid': return <WorldIDVerify />;
       case 'smartWallet': return <SmartWallet />;
       default: return <Dashboard />;

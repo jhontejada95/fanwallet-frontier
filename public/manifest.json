@@ -1,0 +1,29 @@
+{
+  "name": "FanWallet \u2014 FIFA World Cup 2026",
+  "short_name": "FanWallet",
+  "description": "Crypto payments for FIFA World Cup 2026 fans. Pay with USDC, earn GoalPoints on Solana.",
+  "theme_color": "#00A651",
+  "background_color": "#0a0e1a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

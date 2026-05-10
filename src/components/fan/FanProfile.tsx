@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { TRANSACTIONS, STAMPS } from '../../lib/mockData';
 
 export default function FanProfile() {

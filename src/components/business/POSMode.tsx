@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useApp } from '../../lib/appContext';
+import { subscribeToPayments, explorerUrl } from '../../lib/solana';
 
 // Stable QR visual — pattern is memoized, never re-randomized on re-render
 const QR_PATTERN = (() => {
@@ -72,11 +74,15 @@ function ConfettiOverlay() {
 
 export default function POSMode() {
   const { setBizScreen } = useApp();
+  const wallet = useWallet();
+  const unsubscribeRef = useRef<(() => void) | null>(null);
   const [amount, setAmount] = useState('');
   const [stage, setStage] = useState<'input' | 'qr' | 'waiting' | 'success'>('input');
   const [confetti, setConfetti] = useState(false);
   const [currency, setCurrency] = useState<'USDC' | 'MXN'>('USDC');
   const [fanData, setFanData] = useState({ flag: '🇧🇷', country: 'Brazil', points: 0 });
+  const [liveTxSig, setLiveTxSig] = useState<string | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
   const displayAmount = amount
     ? currency === 'MXN'
@@ -100,26 +106,57 @@ export default function POSMode() {
     }
   };
 
+  // Start real WebSocket listener when wallet connected, entering waiting state
+  useEffect(() => {
+    if (stage !== 'waiting' || !wallet.publicKey) return;
+
+    setWsConnected(true);
+    const expectedUsdc = parseFloat(usdcAmount);
+
+    const unsub = subscribeToPayments(wallet.publicKey, (receivedUsdc, sig) => {
+      if (receivedUsdc >= expectedUsdc * 0.99) { // 1% tolerance
+        setLiveTxSig(sig);
+        const pts = Math.round(receivedUsdc * 2);
+        setFanData({ flag: '🌐', country: 'On-chain', points: pts });
+        setStage('success');
+        setConfetti(true);
+        setTimeout(() => setConfetti(false), 3000);
+      }
+    });
+    unsubscribeRef.current = unsub;
+
+    return () => {
+      unsub();
+      setWsConnected(false);
+    };
+  }, [stage, wallet.publicKey, usdcAmount]);
+
   const handleGenerateQR = () => {
     if (!amount || parseFloat(amount) <= 0) return;
     setStage('qr');
     setTimeout(() => {
       setStage('waiting');
-      // Simulate fan scanning
-      setTimeout(() => {
-        const fans = [
-          { flag: '🇧🇷', country: 'Brazil' },
-          { flag: '🇩🇪', country: 'Germany' },
-          { flag: '🇯🇵', country: 'Japan' },
-          { flag: '🇦🇷', country: 'Argentina' },
-        ];
-        const fan = fans[Math.floor(Math.random() * fans.length)];
-        const pts = Math.round(parseFloat(usdcAmount) * 2);
-        setFanData({ ...fan, points: pts });
-        setStage('success');
-        setConfetti(true);
-        setTimeout(() => setConfetti(false), 3000);
-      }, 3000);
+
+      if (!wallet.publicKey) {
+        // Mock fallback — no real wallet
+        setTimeout(() => {
+          const fans = [
+            { flag: '🇧🇷', country: 'Brazil' },
+            { flag: '🇩🇪', country: 'Germany' },
+            { flag: '🇯🇵', country: 'Japan' },
+            { flag: '🇦🇷', country: 'Argentina' },
+          ];
+          let s = 0xdeadbeef;
+          s = (s * 1664525 + 1013904223) >>> 0;
+          const fan = fans[s % fans.length];
+          const pts = Math.round(parseFloat(usdcAmount) * 2);
+          setFanData({ ...fan, points: pts });
+          setStage('success');
+          setConfetti(true);
+          setTimeout(() => setConfetti(false), 3000);
+        }, 3000);
+      }
+      // Real wallet: useEffect above handles WebSocket listener
     }, 500);
   };
 
@@ -239,6 +276,11 @@ export default function POSMode() {
 
           <p className="text-xs text-gray-600 mt-2">Solana Pay · Devnet</p>
           <p className="font-mono text-xs text-gray-700 mt-1">CFi9...eYP3g</p>
+          {wsConnected && (
+            <p className="text-xs text-green-400/60 mt-1 animate-pulse">
+              ● WebSocket listener active
+            </p>
+          )}
 
           <button
             onClick={handleNewTx}
