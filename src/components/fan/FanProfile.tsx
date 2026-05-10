@@ -53,7 +53,10 @@ export default function FanProfile() {
           <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Solana Wallet</p>
           <div className="flex items-center justify-between">
             <p className="font-mono text-sm text-brand-green">CFi9...eYP3g</p>
-            <button className="text-xs text-gray-400 bg-gray-800 px-3 py-1 rounded-lg">Copy</button>
+            <button
+            className="text-xs text-gray-400 bg-gray-800 px-3 py-1 rounded-lg active:bg-gray-700 transition-all"
+            onClick={() => navigator.clipboard.writeText('CFi91VLHPRFBYdKtNSJst56DTQ5jPQ6oxRvMjx9eYP3g').catch(() => {})}
+          >Copy</button>
           </div>
           <p className="text-white font-bold mt-2">${balance > 0 ? balance.toFixed(2) : '124.50'} USDC</p>
         </div>

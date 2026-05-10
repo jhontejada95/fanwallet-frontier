@@ -5,6 +5,7 @@ export default function BizReviews() {
   const [filter, setFilter] = useState<'all' | 'unanswered' | 'high' | 'low'>('all');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [flagged, setFlagged] = useState<Set<string>>(new Set());
   const [replies, setReplies] = useState<Record<string, string>>({
     r1: 'Thank you! Viva Brasil! 🎉 We loved having you!',
   });
@@ -143,7 +144,12 @@ export default function BizReviews() {
                     >
                       💬 Reply
                     </button>
-                    <button className="text-xs text-gray-600 font-semibold">🚩 Flag</button>
+                    <button
+                      onClick={() => setFlagged(prev => { const s = new Set(prev); s.add(review.id); return s; })}
+                      className={`text-xs font-semibold transition-all ${flagged.has(review.id) ? 'text-red-400' : 'text-gray-600'}`}
+                    >
+                      {flagged.has(review.id) ? '🚩 Flagged' : '🚩 Flag'}
+                    </button>
                   </div>
                 )}
               </div>

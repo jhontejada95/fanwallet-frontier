@@ -11,6 +11,11 @@ import LeaveReview from './LeaveReview';
 import GoalPoints from './GoalPoints';
 import Stamps from './Stamps';
 import FanProfile from './FanProfile';
+import Send from './Send';
+import Split from './Split';
+import FanAgent from './FanAgent';
+import WorldIDVerify from './WorldIDVerify';
+import SmartWallet from './SmartWallet';
 import BottomNav from './BottomNav';
 
 const NO_NAV_SCREENS = ['splash', 'onboarding', 'review'];
@@ -31,6 +36,11 @@ export default function FanApp() {
       case 'goalpoints': return <GoalPoints />;
       case 'stamps': return <Stamps />;
       case 'profile': return <FanProfile />;
+      case 'send': return <Send />;
+      case 'split': return <Split />;
+      case 'agent': return <FanAgent />;
+      case 'worldid': return <WorldIDVerify />;
+      case 'smartWallet': return <SmartWallet />;
       default: return <Dashboard />;
     }
   };

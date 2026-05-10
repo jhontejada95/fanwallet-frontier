@@ -82,8 +82,21 @@ export default function Stamps() {
                   <div className="inline-flex items-center gap-2 bg-brand-green/10 border border-brand-green/30 rounded-full px-4 py-2 mb-4">
                     <span className="text-brand-green text-sm font-bold">✓ Earned on {selected.date}</span>
                   </div>
-                  <button className="w-full py-3 rounded-2xl font-bold text-white"
-                          style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}>
+                  <button
+                    className="w-full py-3 rounded-2xl font-bold text-white"
+                    style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: selected.name,
+                          text: `I earned the "${selected.name}" stamp at FanWallet! 🌍⚽`,
+                          url: 'https://fanwallet.app',
+                        }).catch(() => {});
+                      } else {
+                        navigator.clipboard.writeText(`I earned the "${selected.name}" stamp at FanWallet! 🌍⚽`).catch(() => {});
+                      }
+                    }}
+                  >
                     Share Stamp 🌍
                   </button>
                 </>

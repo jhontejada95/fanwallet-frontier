@@ -1,23 +1,32 @@
 import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
 
-// Simple QR visual (placeholder for real QR library)
+// Stable QR visual — pattern derived from data string, no Math.random() on render
 function QRDisplay({ data }: { data: string }) {
+  const pattern = React.useMemo(() => {
+    // Deterministic pattern from data hash
+    let seed = 0;
+    for (let c = 0; c < data.length; c++) {
+      seed = (seed * 31 + data.charCodeAt(c)) >>> 0;
+    }
+    return Array.from({ length: 49 }, (_, i) => {
+      const isCorner = (i < 3) || (i > 5 && i < 7) ||
+                       (i > 41 && i < 44) || (i === 48) ||
+                       (i % 7 === 0 && i < 28) || (i % 7 === 6 && i < 14);
+      if (isCorner) return true;
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return (seed >>> 16 & 1) === 1;
+    });
+  }, [data]);
+
   return (
     <div className="qr-wrapper inline-block">
       <div className="w-48 h-48 relative">
-        {/* Simulated QR pattern */}
         <div className="absolute inset-0 grid grid-cols-7 gap-0.5 p-2">
-          {Array.from({ length: 49 }).map((_, i) => {
-            const isCorner = (i < 7 && (i < 3 || i === 6)) ||
-                             (i >= 42 && (i >= 46 || i % 7 === 0)) ||
-                             (i % 7 === 0 && i < 21);
-            const isDark = isCorner || Math.random() > 0.5;
-            return (
-              <div key={i} className={`rounded-sm ${isDark ? 'bg-black' : 'bg-white'}`}
-                   style={{ minHeight: 6 }} />
-            );
-          })}
+          {pattern.map((dark, i) => (
+            <div key={i} className={`rounded-sm ${dark ? 'bg-black' : 'bg-white'}`}
+                 style={{ minHeight: 6 }} />
+          ))}
         </div>
         {/* Center logo */}
         <div className="absolute inset-0 flex items-center justify-center">
@@ -40,6 +49,7 @@ export default function PayQR() {
   const displayBalance = balance > 0 ? balance : 124.50;
 
   const handleCopy = () => {
+    navigator.clipboard.writeText(walletAddress).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

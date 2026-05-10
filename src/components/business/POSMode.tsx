@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../lib/appContext';
 
-// Simple QR visual
+// Stable QR visual — pattern is memoized, never re-randomized on re-render
+const QR_PATTERN = (() => {
+  let s = 0xdeadbeef;
+  return Array.from({ length: 49 }, (_, i) => {
+    const edges = i < 7 || i >= 42 || i % 7 === 0 || i % 7 === 6;
+    if (edges) return true;
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return (s >>> 16 & 1) === 1;
+  });
+})();
+
 function QRDisplay() {
   return (
     <div className="bg-white rounded-3xl p-5 inline-block shadow-2xl">
       <div className="w-48 h-48 relative">
         <div className="absolute inset-0 grid grid-cols-7 gap-0.5 p-2">
-          {Array.from({ length: 49 }).map((_, i) => {
-            const edges = i < 7 || i >= 42 || i % 7 === 0 || i % 7 === 6;
-            const isDark = edges || (Math.random() > 0.45);
-            return <div key={i} className={`rounded-sm ${isDark ? 'bg-black' : 'bg-white'}`} style={{ minHeight: 7 }} />;
-          })}
+          {QR_PATTERN.map((dark, i) => (
+            <div key={i} className={`rounded-sm ${dark ? 'bg-black' : 'bg-white'}`} style={{ minHeight: 7 }} />
+          ))}
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-2 shadow">
@@ -20,6 +28,44 @@ function QRDisplay() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+// Pre-computed confetti so it doesn't re-randomize on parent re-renders
+const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => {
+  let s = (i * 1664525 + 1013904223) >>> 0;
+  const rand = () => { s = (s * 1664525 + 1013904223) >>> 0; return (s >>> 0) / 0xffffffff; };
+  return {
+    left: `${rand() * 100}%`,
+    bg: ['#00A651', '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'][i % 6],
+    radius: rand() > 0.5 ? '50%' : '2px',
+    size: `${6 + rand() * 8}px`,
+    delay: `${rand() * 0.8}s`,
+    duration: `${1.2 + rand() * 0.8}s`,
+  };
+});
+
+function ConfettiOverlay() {
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+      {CONFETTI_PIECES.map((p, i) => (
+        <div
+          key={i}
+          className="confetti-piece"
+          style={{
+            left: p.left,
+            top: '-20px',
+            background: p.bg,
+            borderRadius: p.radius,
+            width: p.size,
+            height: p.size,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -242,26 +288,7 @@ export default function POSMode() {
       )}
 
       {/* Confetti */}
-      {confetti && (
-        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-          {Array.from({ length: 30 }).map((_, i) => (
-            <div
-              key={i}
-              className="confetti-piece"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: '-20px',
-                background: ['#00A651', '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'][i % 6],
-                borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                width: `${6 + Math.random() * 8}px`,
-                height: `${6 + Math.random() * 8}px`,
-                animationDelay: `${Math.random() * 0.8}s`,
-                animationDuration: `${1.2 + Math.random() * 0.8}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {confetti && <ConfettiOverlay />}
     </div>
   );
 }

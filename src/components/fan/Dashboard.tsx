@@ -5,8 +5,7 @@ import FanAgent from './FanAgent';
 import WorldIDVerify from './WorldIDVerify';
 
 export default function Dashboard() {
-  const { balance, goalPoints, selectedCountry, setFanScreen, setSelectedMerchant, setRole } = useApp();
-  const [depositDemo] = useState(true);
+  const { balance, goalPoints, selectedCountry, setFanScreen, setSelectedMerchant } = useApp();
   const [showAgent, setShowAgent] = useState(false);
   const [showWorldID, setShowWorldID] = useState(false);
   const [worldVerified, setWorldVerified] = useState(false);
@@ -37,7 +36,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowAgent(true)}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-lg border border-brand-green/40 animate-pulse-green"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-lg border border-brand-green/40"
               style={{ background: 'rgba(0,166,81,0.15)' }}
               title="FanAgent AI"
             >
@@ -45,7 +44,9 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setShowWorldID(true)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm border ${worldVerified ? 'border-brand-green bg-brand-green/20' : 'border-gray-700 bg-gray-800'}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm border transition-all ${
+                worldVerified ? 'border-brand-green bg-brand-green/20' : 'border-gray-700 bg-gray-800'
+              }`}
               title="World ID"
             >
               {worldVerified ? '✓' : '🌍'}
@@ -60,13 +61,19 @@ export default function Dashboard() {
                style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translate(30%, -30%)' }} />
           <p className="text-green-100 text-sm font-medium mb-1">Total Balance</p>
           <h2 className="text-4xl font-black text-white mb-1">
-            ${displayBalance.toFixed(2)} <span className="text-xl font-medium opacity-80">USDC</span>
+            ${displayBalance.toFixed(2)}{' '}
+            <span className="text-xl font-medium opacity-80">USDC</span>
           </h2>
-          <p className="text-green-100 text-sm">≈ {selectedCountry?.currency === 'MXN' ? 'MXN 2,190' : selectedCountry?.currency === 'BRL' ? 'BRL 624' : 'USD 124.50'}</p>
-
+          <p className="text-green-100 text-sm">
+            {selectedCountry?.currency === 'MXN'
+              ? '≈ MXN 2,190'
+              : selectedCountry?.currency === 'BRL'
+              ? '≈ BRL 624'
+              : '≈ USD 124.50'}
+          </p>
           <div className="mt-4 flex items-center gap-2 bg-black/20 rounded-xl px-3 py-2 w-fit">
             <span className="text-green-200 text-xs">🏦</span>
-            <span className="text-green-100 text-xs font-medium">You saved $10.20 vs airport exchange</span>
+            <span className="text-green-100 text-xs font-medium">Saved $10.20 vs airport exchange</span>
           </div>
         </div>
 
@@ -75,8 +82,8 @@ export default function Dashboard() {
           {[
             { icon: '⬇️', label: 'Deposit', screen: 'deposit' as const },
             { icon: '📱', label: 'Pay', screen: 'pay' as const },
-            { icon: '↗️', label: 'Send', screen: 'pay' as const },
-            { icon: '✂️', label: 'Split', screen: 'pay' as const },
+            { icon: '↗️', label: 'Send', screen: 'send' as const },
+            { icon: '✂️', label: 'Split', screen: 'split' as const },
           ].map(({ icon, label, screen }) => (
             <button
               key={label}
@@ -100,8 +107,15 @@ export default function Dashboard() {
           <span className="text-3xl">⚽</span>
           <div className="flex-1 text-left">
             <p className="font-bold text-yellow-400">{goalPoints} GoalPoints</p>
-            <p className="text-xs text-gray-400">≈ ${(goalPoints / 100).toFixed(2)} redeemable at any merchant</p>
+            <p className="text-xs text-gray-400">
+              ≈ ${(goalPoints / 100).toFixed(2)} redeemable at any merchant
+            </p>
           </div>
+          {worldVerified && (
+            <span className="text-xs bg-brand-green/20 text-brand-green border border-brand-green/30 px-2 py-0.5 rounded-full font-bold">
+              2x ✓
+            </span>
+          )}
           <span className="text-yellow-500">→</span>
         </button>
       </div>
@@ -137,15 +151,22 @@ export default function Dashboard() {
       {/* Deals Near You */}
       <div className="px-5 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-bold text-white flex items-center gap-2"><span>🔥</span> Deals Near You</h3>
-          <button onClick={() => setFanScreen('map')} className="text-brand-green text-sm font-medium">See all →</button>
+          <h3 className="font-bold text-white flex items-center gap-2">
+            <span>🔥</span> Deals Near You
+          </h3>
+          <button
+            onClick={() => setFanScreen('map')}
+            className="text-brand-green text-sm font-medium"
+          >
+            See all →
+          </button>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {MERCHANTS.filter(m => m.deal).map(merchant => (
             <button
               key={merchant.id}
               onClick={() => { setSelectedMerchant(merchant.id); setFanScreen('merchant'); }}
-              className="glass-card rounded-2xl p-4 border border-gray-700 min-w-[180px] text-left active:scale-95 transition-all hover:border-brand-green"
+              className="glass-card rounded-2xl p-4 border border-gray-700 min-w-[180px] text-left active:scale-95 transition-all hover:border-brand-green flex-shrink-0"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl">{merchant.emoji}</span>
@@ -161,4 +182,42 @@ export default function Dashboard() {
                 {merchant.deal?.title}
               </p>
               <p className="text-xs text-yellow-400 mt-2 font-semibold">
-                {m
+                {merchant.pointsMultiplier}x GoalPoints
+              </p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Transactions */}
+      <div className="px-5 mb-28">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-white flex items-center gap-2">
+            <span>🕐</span> Recent
+          </h3>
+          <button
+            onClick={() => setFanScreen('profile')}
+            className="text-brand-green text-sm font-medium"
+          >
+            View all →
+          </button>
+        </div>
+        <div className="space-y-2">
+          {TRANSACTIONS.map(tx => (
+            <div key={tx.id} className="glass-card rounded-2xl px-4 py-3 border border-gray-700 flex items-center gap-3">
+              <span className="text-xl">{tx.emoji}</span>
+              <div className="flex-1">
+                <p className="font-semibold text-white text-sm">{tx.merchant}</p>
+                <p className="text-xs text-gray-500">{tx.date}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-white text-sm">${tx.amount.toFixed(2)}</p>
+                <p className="text-xs text-yellow-400">+{tx.points} pts</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

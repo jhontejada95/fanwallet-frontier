@@ -12,6 +12,14 @@ interface Message {
   };
 }
 
+// Safe markdown renderer — avoids dangerouslySetInnerHTML XSS risk
+function renderBold(text: string): React.ReactNode {
+  const parts = text.split(/\*\*(.*?)\*\*/g);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+  );
+}
+
 const INITIAL_MESSAGES: Message[] = [
   {
     role: 'agent',
@@ -129,10 +137,9 @@ export default function FanAgent({ onClose }: { onClose: () => void }) {
                       ? 'bg-brand-green text-white rounded-br-lg'
                       : 'glass-card border border-gray-700 text-gray-200 rounded-bl-lg'
                   }`}
-                  dangerouslySetInnerHTML={{
-                    __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
-                  }}
-                />
+                >
+                  {renderBold(msg.text)}
+                </div>
                 {msg.action && (
                   <button
                     onClick={() => handleAction(msg.action)}
