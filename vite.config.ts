@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [
@@ -19,22 +20,9 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
       workbox: {
@@ -52,20 +40,32 @@ export default defineConfig({
       },
     }),
   ],
-  // Required for @solana/web3.js buffer polyfill
   define: {
     'process.env': {},
     global: 'globalThis',
   },
   resolve: {
     alias: {
-      buffer: 'buffer',
+      // Absolute path prevents Vite from treating 'buffer' as a Node built-in
+      buffer: resolve(__dirname, 'node_modules/buffer/index.js'),
     },
   },
   optimizeDeps: {
-    include: ['buffer'],
+    include: [
+      'buffer',
+      '@solana/web3.js',
+      '@solana/spl-token',
+      '@coral-xyz/anchor',
+      '@solana/wallet-adapter-base',
+      '@solana/wallet-adapter-react',
+      '@solana/wallet-adapter-react-ui',
+      '@solana/wallet-adapter-wallets',
+    ],
     esbuildOptions: {
       target: 'esnext',
+      define: {
+        global: 'globalThis',
+      },
     },
   },
   build: {

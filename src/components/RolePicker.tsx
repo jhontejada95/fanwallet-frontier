@@ -1,124 +1,163 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../lib/appContext';
+import { LogoMark } from './LogoMark';
+
+const S = {
+  root: {
+    minHeight: '100vh',
+    background: '#0a0e1a',
+    position: 'relative' as const,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    padding: '24px 22px 110px',
+  },
+  pitchCenter: {
+    position: 'absolute' as const,
+    left: '50%',
+    top: '52%',
+    transform: 'translate(-50%,-50%)',
+    width: '180%',
+    aspectRatio: '1',
+    border: '1px solid rgba(255,255,255,0.05)',
+    borderRadius: '50%',
+    pointerEvents: 'none' as const,
+  },
+  pitchLine: {
+    position: 'absolute' as const,
+    left: 0,
+    right: 0,
+    top: '52%',
+    height: 1,
+    background: 'rgba(255,255,255,0.06)',
+    pointerEvents: 'none' as const,
+  },
+  pitchBg: {
+    position: 'absolute' as const,
+    inset: 0,
+    backgroundImage:
+      'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,166,81,0.06) 0%, transparent 60%), repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 80px)',
+    pointerEvents: 'none' as const,
+  },
+  glowTop: {
+    position: 'absolute' as const,
+    inset: 0,
+    background:
+      'radial-gradient(60% 40% at 50% 15%, rgba(0,166,81,0.18) 0%, transparent 70%), radial-gradient(50% 30% at 50% 95%, rgba(255,215,0,0.10) 0%, transparent 70%)',
+    pointerEvents: 'none' as const,
+  },
+};
 
 export default function RolePicker() {
   const { setRole, setFanScreen, setBizScreen } = useApp();
-  const [hoveredFan, setHoveredFan] = useState(false);
-  const [hoveredBiz, setHoveredBiz] = useState(false);
 
   const enterFan = () => { setRole('fan'); setFanScreen('splash'); };
   const enterBiz = () => { setRole('business'); setBizScreen('dashboard'); };
 
   return (
-    <div className="min-h-screen field-bg flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
-      {/* Ambient glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full opacity-10"
-           style={{ background: 'radial-gradient(circle, #00A651, transparent 70%)' }} />
+    <div style={S.root}>
+      {/* Background */}
+      <div style={S.pitchBg} />
+      <div style={S.pitchCenter} />
+      <div style={S.pitchLine} />
+      <div style={S.glowTop} />
 
-      {/* Header */}
-      <div className="text-center mb-12 animate-fade-in">
-        <div className="text-6xl mb-4">⚽</div>
-        <h1 className="text-4xl font-extrabold text-white tracking-tight">
-          Fan<span className="text-gold-gradient">Wallet</span>
-        </h1>
-        <p className="text-gray-400 mt-2 text-sm font-medium tracking-widest uppercase">
-          FIFA World Cup 2026
-        </p>
-        <div className="mt-3 flex items-center justify-center gap-2">
-          <span className="text-xs px-2 py-1 rounded-full bg-brand-green/20 text-brand-green font-semibold border border-brand-green/30">
-            Powered by Solana
-          </span>
-          <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 font-semibold border border-purple-500/30">
-            LI.FI Bridge
-          </span>
+      {/* Logo */}
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 6 }}>
+        <LogoMark size={56} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <div style={{ fontFamily: '"Archivo Black", sans-serif', fontSize: 30, letterSpacing: '-0.04em', color: '#fff' }}>
+            fanwallet<span style={{ color: '#00A651' }}>.</span>
+          </div>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 9, color: '#00A651', letterSpacing: '0.32em', textTransform: 'uppercase' as const }}>
+            FRONTIER · WC26
+          </div>
+        </div>
+      </div>
+
+      {/* Tagline */}
+      <div style={{ position: 'relative', textAlign: 'center', marginTop: 36, padding: '0 8px' }}>
+        <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 28, lineHeight: 1.05, letterSpacing: '-0.02em', color: '#fff' }}>
+          Pay like a local.<br />Earn like a{' '}
+          <span style={{ color: '#FFD700' }}>champion.</span>
+        </div>
+        <div style={{ color: '#B6BECB', marginTop: 14, fontSize: 14, lineHeight: 1.4 }}>
+          How are you joining the tournament?
         </div>
       </div>
 
       {/* Role cards */}
-      <div className="w-full space-y-4 animate-slide-up">
-        <button
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 14, marginTop: 28 }}>
+        {/* Fan card */}
+        <div
           onClick={enterFan}
-          onMouseEnter={() => setHoveredFan(true)}
-          onMouseLeave={() => setHoveredFan(false)}
-          className="w-full rounded-3xl p-6 border-2 transition-all duration-300 text-left relative overflow-hidden group"
           style={{
-            background: hoveredFan
-              ? 'linear-gradient(135deg, rgba(0,166,81,0.2), rgba(0,166,81,0.05))'
-              : 'rgba(17,24,39,0.9)',
-            borderColor: hoveredFan ? '#00A651' : 'rgba(31,41,55,0.8)',
-            boxShadow: hoveredFan ? '0 0 30px rgba(0,166,81,0.2)' : 'none',
+            background: 'linear-gradient(135deg, #00A651 0%, #007a3c 100%)',
+            borderRadius: 22, padding: '22px 22px', position: 'relative', overflow: 'hidden',
+            boxShadow: '0 18px 50px -16px rgba(0,166,81,0.7)', cursor: 'pointer',
           }}
         >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0"
-                 style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}>
-              ✈️
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-xl text-white">I'm a Fan</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-brand-green/20 text-brand-green font-semibold">
-                  Tourist
-                </span>
-              </div>
-              <p className="text-gray-400 text-sm">Pay everywhere with crypto from any chain. Earn points, collect stamps, discover the best spots.</p>
-              <div className="flex gap-2 mt-3">
-                {['🌍 48 nations', '⚡ <1s payments', '🎁 GoalPoints'].map(t => (
-                  <span key={t} className="text-xs text-gray-500">{t}</span>
-                ))}
-              </div>
-            </div>
-            <div className="text-brand-green text-2xl">→</div>
+          <div style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 18, top: 18 }}>
+            <svg viewBox="0 0 24 24" width={56} height={56} fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <polygon points="12,7 16,10 14.5,15 9.5,15 8,10"/>
+              <path d="M12 3v4M3 12l5-2M21 12l-5-2M5.5 18.5l4-3.5M18.5 18.5l-4-3.5"/>
+            </svg>
           </div>
-        </button>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase' as const, opacity: 0.85, marginBottom: 6, color: '#fff' }}>FOR TRAVELERS</div>
+          <div style={{ fontFamily: '"Archivo Black", sans-serif', fontSize: 34, lineHeight: 0.95, color: '#fff' }}>I'm a Fan</div>
+          <div style={{ marginTop: 8, fontSize: 13, opacity: 0.92, maxWidth: 200, color: '#fff', lineHeight: 1.4 }}>
+            Pay merchants, send to friends, earn GoalPoints at every match.
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 18, fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff' }}>
+            Continue
+            <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 6l6 6-6 6"/>
+            </svg>
+          </div>
+        </div>
 
-        <button
+        {/* Business card */}
+        <div
           onClick={enterBiz}
-          onMouseEnter={() => setHoveredBiz(true)}
-          onMouseLeave={() => setHoveredBiz(false)}
-          className="w-full rounded-3xl p-6 border-2 transition-all duration-300 text-left relative overflow-hidden"
           style={{
-            background: hoveredBiz
-              ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,165,0,0.05))'
-              : 'rgba(17,24,39,0.9)',
-            borderColor: hoveredBiz ? '#FFD700' : 'rgba(31,41,55,0.8)',
-            boxShadow: hoveredBiz ? '0 0 30px rgba(255,215,0,0.15)' : 'none',
+            background: 'linear-gradient(135deg, #FFD700 0%, #c99800 100%)',
+            color: '#1a1300',
+            borderRadius: 22, padding: '22px 22px', position: 'relative', overflow: 'hidden',
+            boxShadow: '0 18px 50px -16px rgba(255,215,0,0.55)', cursor: 'pointer',
           }}
         >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0"
-                 style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)' }}>
-              🏪
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-xl text-white">I'm a Business</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-semibold">
-                  Merchant
-                </span>
-              </div>
-              <p className="text-gray-400 text-sm">Accept crypto from fans of 48 nations. Manage reviews, deals, and grow your business during the Cup.</p>
-              <div className="flex gap-2 mt-3">
-                {['💰 0% fees', '📊 Analytics', '⭐ Reviews'].map(t => (
-                  <span key={t} className="text-xs text-gray-500">{t}</span>
-                ))}
-              </div>
-            </div>
-            <div className="text-yellow-400 text-2xl">→</div>
+          <div style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(0,0,0,0.08)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 18, top: 18 }}>
+            <svg viewBox="0 0 24 24" width={56} height={56} fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 7a2 2 0 012-2h12a2 2 0 012 2v2H5a2 2 0 00-2 2V7z"/>
+              <path d="M3 9h17a1 1 0 011 1v9a1 1 0 01-1 1H5a2 2 0 01-2-2V9z"/>
+              <circle cx="17" cy="14.5" r="1.4"/>
+            </svg>
           </div>
-        </button>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase' as const, opacity: 0.7, marginBottom: 6 }}>FOR MERCHANTS</div>
+          <div style={{ fontFamily: '"Archivo Black", sans-serif', fontSize: 34, lineHeight: 0.95 }}>I'm a Business</div>
+          <div style={{ marginTop: 8, fontSize: 13, opacity: 0.85, maxWidth: 230, lineHeight: 1.4 }}>
+            Accept USDC, settle instantly, reach 5M+ visiting fans.
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 18, fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 14 }}>
+            Continue
+            <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 6l6 6-6 6"/>
+            </svg>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-10 text-center">
-        <p className="text-xs text-gray-600">
-          Secured by Solana · Bridged by LI.FI · Built for World Cup 2026
-        </p>
-        <div className="flex items-center justify-center gap-3 mt-3">
-          <span className="text-xs text-gray-700">🇺🇸 USA</span>
-          <span className="text-xs text-gray-700">🇲🇽 Mexico</span>
-          <span className="text-xs text-gray-700">🇨🇦 Canada</span>
-        </div>
+      <div style={{ position: 'relative', marginTop: 'auto', paddingTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#6b7280', fontSize: 11 }}>
+        <span>Powered by</span>
+        <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, color: '#B6BECB', fontSize: 12 }}>SOLANA</span>
+        <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#6b7280', display: 'inline-block' }} />
+        <span>USDC</span>
+        <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#6b7280', display: 'inline-block' }} />
+        <span>World ID</span>
       </div>
     </div>
   );

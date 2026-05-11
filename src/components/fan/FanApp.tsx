@@ -21,7 +21,7 @@ import BottomNav from './BottomNav';
 const NO_NAV_SCREENS = ['splash', 'onboarding', 'review'];
 
 export default function FanApp() {
-  const { fanScreen } = useApp();
+  const { fanScreen, setFanScreen } = useApp();
 
   const renderScreen = () => {
     switch (fanScreen) {
@@ -39,7 +39,7 @@ export default function FanApp() {
       case 'send': return <Send />;
       case 'split': return <Split />;
       case 'agent': return <FanAgent onClose={() => setFanScreen('dashboard')} />;
-      case 'worldid': return <WorldIDVerify />;
+      case 'worldid': return <WorldIDVerify onVerified={() => setFanScreen('dashboard')} onSkip={() => setFanScreen('dashboard')} />;
       case 'smartWallet': return <SmartWallet />;
       default: return <Dashboard />;
     }

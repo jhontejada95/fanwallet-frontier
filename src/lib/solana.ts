@@ -5,7 +5,7 @@
  * Falls back to mock data gracefully when program is not yet deployed
  * or wallet is not connected.
  *
- * Program: HTgaYE4nogBobG6Rsa1vD1L2XK1Uy9aWLqKceWcausVC (devnet)
+ * Program: HUESSuFsC7DnDZ9bKK7p6phudZYuH7W6PC9rfKQfP7aF (devnet)
  * USDC mint (devnet): 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
  */
 

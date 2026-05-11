@@ -1,8 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Brand design tokens ─────────────────────────────────────────────────── */
+:root {
+  --bg: #0a0e1a;
+  --bg-2: #0f1422;
+  --surface: #131826;
+  --surface-2: #1a2030;
+  --line: rgba(255,255,255,0.08);
+  --line-2: rgba(255,255,255,0.14);
+  --green: #00A651;
+  --green-2: #00C962;
+  --green-glow: rgba(0,166,81,0.45);
+  --gold: #FFD700;
+  --gold-2: #FFC700;
+  --gold-glow: rgba(255,215,0,0.4);
+  --red: #EF4444;
+  --text: #ffffff;
+  --text-2: #B6BECB;
+  --text-3: #6b7280;
+}
 
 * {
   box-sizing: border-box;
@@ -12,9 +30,9 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #0A0E1A;
-  color: white;
-  font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: hidden;
@@ -26,47 +44,88 @@ body {
   flex-direction: column;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #111827; }
-::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+/* ── Typography utility classes ───────────────────────────────────────────── */
+.font-display {
+  font-family: 'Archivo Black', sans-serif;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
+}
 
-/* Mobile container */
+.font-heavy {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.font-eyebrow {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 4px; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* ── Mobile container ─────────────────────────────────────────────────────── */
 .mobile-container {
+  width: 100%;
   max-width: 430px;
-  margin: 0 auto;
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  background: #0A0E1A;
+  background: var(--bg);
 }
 
-/* Glass card */
+@media (min-width: 640px) {
+  .mobile-container {
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 120px -20px rgba(0,166,81,0.25);
+  }
+  body {
+    background: #070a12;
+  }
+}
+
+/* ── Glass card ───────────────────────────────────────────────────────────── */
 .glass-card {
-  background: rgba(17, 24, 39, 0.8);
+  background: rgba(19, 24, 38, 0.85);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(31, 41, 55, 0.8);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
-/* Glow effects */
+/* ── Glow effects ─────────────────────────────────────────────────────────── */
 .glow-green {
-  box-shadow: 0 0 20px rgba(0, 166, 81, 0.3);
+  box-shadow: 0 0 0 1px rgba(0,166,81,0.4), 0 18px 60px -10px rgba(0,166,81,0.4);
 }
 
 .glow-gold {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 0 1px rgba(255,215,0,0.35), 0 18px 60px -10px rgba(255,215,0,0.35);
 }
 
-/* Field pattern background */
+/* ── Pitch pattern backgrounds ────────────────────────────────────────────── */
 .field-bg {
-  background-color: #0A0E1A;
+  background-color: var(--bg);
   background-image:
-    linear-gradient(rgba(0,166,81,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,166,81,0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,166,81,0.06) 0%, transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 80px);
 }
 
-/* Gradient text */
+.pitch-lines {
+  background-image:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,166,81,0.06) 0%, transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 80px);
+}
+
+/* ── Gradient text ────────────────────────────────────────────────────────── */
 .text-gold-gradient {
   background: linear-gradient(135deg, #FFD700, #FFA500);
   -webkit-background-clip: text;
@@ -75,13 +134,13 @@ body {
 }
 
 .text-green-gradient {
-  background: linear-gradient(135deg, #00A651, #00C661);
+  background: linear-gradient(135deg, #00A651, #00C962);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Animated gradient border */
+/* ── Animated border glow ─────────────────────────────────────────────────── */
 @keyframes borderGlow {
   0%, 100% { border-color: rgba(0, 166, 81, 0.5); }
   50% { border-color: rgba(0, 166, 81, 1); }
@@ -91,7 +150,7 @@ body {
   animation: borderGlow 2s ease-in-out infinite;
 }
 
-/* QR code styles */
+/* ── QR code ──────────────────────────────────────────────────────────────── */
 .qr-wrapper {
   padding: 16px;
   background: white;
@@ -99,12 +158,12 @@ body {
   display: inline-block;
 }
 
-/* Bottom nav safe area */
+/* ── Bottom nav safe area ─────────────────────────────────────────────────── */
 .bottom-nav {
   padding-bottom: env(safe-area-inset-bottom, 8px);
 }
 
-/* Celebration overlay */
+/* ── Confetti ─────────────────────────────────────────────────────────────── */
 @keyframes confettiPiece {
   0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
   100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
@@ -117,25 +176,32 @@ body {
   animation: confettiPiece 1.5s ease-out forwards;
 }
 
-/* Shimmer loading effect */
+/* ── Shimmer ──────────────────────────────────────────────────────────────── */
 @keyframes shimmer {
   0% { background-position: -200px 0; }
   100% { background-position: calc(200px + 100%) 0; }
 }
 
 .shimmer {
-  background: linear-gradient(90deg, #1F2937 25%, #374151 50%, #1F2937 75%);
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite;
 }
 
-/* Number pad */
+/* ── Number pad ───────────────────────────────────────────────────────────── */
 .numpad-key {
   @apply flex items-center justify-center h-16 rounded-2xl text-2xl font-bold
-         bg-gray-800 active:bg-gray-700 transition-all duration-75 cursor-pointer
-         select-none;
+         active:scale-95 transition-all duration-75 cursor-pointer select-none;
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.06);
 }
 
-.numpad-key:active {
-  transform: scale(0.95);
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes loadBar {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.animate-load-bar {
+  animation: loadBar 2.6s ease-out forwards;
 }

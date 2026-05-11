@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useApp } from '../../lib/appContext';
+import { LogoMark } from '../LogoMark';
 
 export default function Splash() {
   const { setFanScreen } = useApp();
@@ -10,65 +11,52 @@ export default function Splash() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
-         style={{ background: 'linear-gradient(160deg, #0A0E1A 0%, #0d1f0d 50%, #0A0E1A 100%)' }}>
-
-      {/* Field lines decoration */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full border border-white" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-16 rounded-t-full border-t border-x border-white" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 rounded-b-full border-b border-x border-white" />
-      </div>
-
-      {/* Ambient glow */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(ellipse at center, rgba(0,166,81,0.15) 0%, transparent 70%)'
+    <div style={{ minHeight: '100vh', background: '#0a0e1a', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Pitch background */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage:
+          'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,166,81,0.06) 0%, transparent 60%), repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 80px)',
       }} />
+      {/* Center circle */}
+      <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '200%', aspectRatio: '1', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '50%', pointerEvents: 'none' }} />
+      {/* Center glow */}
+      <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 480, height: 480, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,166,81,0.22) 0%, transparent 65%)', pointerEvents: 'none' }} />
 
-      {/* Ball animation */}
-      <div className="relative z-10 flex flex-col items-center">
-        <div className="text-8xl mb-6 animate-bounce-in" style={{ animationDelay: '0.2s' }}>⚽</div>
-
-        <h1 className="text-5xl font-black tracking-tight text-white animate-fade-in"
-            style={{ animationDelay: '0.5s' }}>
-          Fan<span className="text-gold-gradient">Wallet</span>
-        </h1>
-
-        <p className="mt-3 text-brand-green font-semibold tracking-widest text-sm uppercase animate-fade-in"
-           style={{ animationDelay: '0.8s' }}>
-          FIFA World Cup 2026
-        </p>
-
-        <div className="flex gap-2 mt-6 animate-fade-in" style={{ animationDelay: '1.1s' }}>
-          <span className="text-2xl">🇺🇸</span>
-          <span className="text-2xl">🇲🇽</span>
-          <span className="text-2xl">🇨🇦</span>
+      {/* Content */}
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+        <div className="animate-bounce-in">
+          <LogoMark size={72} />
         </div>
-
-        {/* Loading bar */}
-        <div className="mt-12 w-40 h-1 bg-gray-800 rounded-full overflow-hidden animate-fade-in"
-             style={{ animationDelay: '1.4s' }}>
-          <div className="h-full rounded-full animate-pulse"
-               style={{
-                 background: 'linear-gradient(90deg, #00A651, #FFD700)',
-                 animation: 'loadBar 2s ease-out forwards',
-                 width: '0%',
-               }} />
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <div style={{ fontFamily: '"Archivo Black", sans-serif', fontSize: 36, letterSpacing: '-0.04em', color: '#fff' }}>
+            fanwallet<span style={{ color: '#00A651' }}>.</span>
+          </div>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 10, color: '#00A651', letterSpacing: '0.32em', textTransform: 'uppercase' }}>
+            FRONTIER · WC26
+          </div>
+        </div>
+        <div className="animate-fade-in" style={{ textAlign: 'center', marginTop: 8, padding: '0 32px' }}>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 22, lineHeight: 1.1, color: '#fff', letterSpacing: '-0.02em' }}>
+            Pay like a local.<br />Earn like a <span style={{ color: '#FFD700' }}>champion.</span>
+          </div>
         </div>
       </div>
 
-      {/* Bottom tag */}
-      <div className="absolute bottom-8 text-center animate-fade-in" style={{ animationDelay: '1.6s' }}>
-        <p className="text-xs text-gray-600">Powered by Solana · LI.FI · Privy</p>
+      {/* Loading bar */}
+      <div style={{ position: 'absolute', bottom: 56, width: 140, height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden' }}>
+        <div className="animate-load-bar" style={{ height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #00A651, #FFD700)', width: '0%' }} />
       </div>
 
-      <style>{`
-        @keyframes loadBar {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-      `}</style>
+      {/* Footer */}
+      <div style={{ position: 'absolute', bottom: 28, display: 'flex', alignItems: 'center', gap: 8, color: '#4b5563', fontSize: 11 }}>
+        <span>Powered by</span>
+        <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, color: '#6b7280' }}>SOLANA</span>
+        <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#4b5563', display: 'inline-block' }} />
+        <span>USDC</span>
+        <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#4b5563', display: 'inline-block' }} />
+        <span>World ID</span>
+      </div>
     </div>
   );
 }

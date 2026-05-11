@@ -1,6 +1,6 @@
 /**
  * FanWallet Anchor IDL — generated from programs/fanwallet/src/lib.rs
- * Program: HTgaYE4nogBobG6Rsa1vD1L2XK1Uy9aWLqKceWcausVC  (Solana devnet)
+ * Program: HUESSuFsC7DnDZ9bKK7p6phudZYuH7W6PC9rfKQfP7aF  (Solana devnet)
  */
 
 export type FanWallet = {
@@ -342,5 +342,5 @@ export const IDL: FanWallet = {
 };
 
 // ── PDA helpers ───────────────────────────────────────────────────────────────
-export const PROGRAM_ID = "HTgaYE4nogBobG6Rsa1vD1L2XK1Uy9aWLqKceWcausVC";
-export const USDC_MINT_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+export const PROGRAM_ID = "HUESSuFsC7DnDZ9bKK7p6phudZYuH7W6PC9rfKQfP7aF";
+export const USDC_MINT_DEVNET = "Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr";

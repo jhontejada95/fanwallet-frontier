@@ -15,7 +15,6 @@ import {
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
   PhantomWalletAdapter,
-  BackpackWalletAdapter,
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
@@ -35,7 +34,6 @@ export const SolanaWalletProvider: FC<SolanaWalletProviderProps> = ({ children }
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
-      new BackpackWalletAdapter(),
       new SolflareWalletAdapter({ network }),
     ],
     [network]

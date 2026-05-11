@@ -1,36 +1,29 @@
-/**
- * GoalPoints — Level 3 upgrade
- *
- * Real on-chain SPL token balance from Solana devnet.
- * Redeem burns tokens via the fanwallet program.
- * Falls back to mock state when wallet not connected.
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
 import { redeemPoints as redeemOnChain, explorerUrl } from '../../lib/solana';
 
 const EARN_WAYS = [
-  { icon: '💳', label: 'Per payment', desc: '1 pt per $1 spent', pts: '+1/USD' },
-  { icon: '⭐', label: 'Leave a review', desc: 'After verified purchase', pts: '+50' },
-  { icon: '📸', label: 'Add photo', desc: 'To your review', pts: '+25' },
-  { icon: '👥', label: 'Refer a friend', desc: 'When they make first payment', pts: '+100' },
+  { emoji: '💳', title: 'Pay at a partner merchant', sub: '342 merchants across host cities', pts: '+10–50', color: '#00A651' },
+  { emoji: '⚽', title: 'Predict match outcomes', sub: 'Daily streak up to 7×', pts: '+50', color: '#FFD700' },
+  { emoji: '🏟️', title: 'Check in at a stadium', sub: 'Geofenced to host venues', pts: '+250', color: '#EF4444' },
+  { emoji: '👥', title: 'Refer a fellow fan', sub: 'Both of you earn', pts: '+500', color: '#00A651' },
+  { emoji: '🔥', title: 'Leave a verified review', sub: 'After any FanWallet payment', pts: '+50', color: '#FFD700' },
+  { emoji: '🌍', title: 'World ID verification', sub: 'Verify humanity → 2× on all payments', pts: '2×', color: '#FFD700' },
 ];
 
 const REDEEM_OPTIONS = [
-  { pts: 100, value: '$1.00', desc: 'Minimum redemption' },
-  { pts: 500, value: '$5.00', desc: 'Great for a meal' },
-  { pts: 1000, value: '$10.00', desc: 'Match day savings' },
-  { pts: 2000, value: '$20.00', desc: 'Premium experience' },
+  { title: 'Match Ticket Upgrade', pts: 5000, color: '#EF4444' },
+  { title: 'Stadium F&B Voucher', pts: 750, color: '#00A651' },
+  { title: 'WC26 Limited Scarf', pts: 1200, color: '#FFD700' },
+  { title: '$10 USDC Cashback', pts: 1000, color: '#00A651' },
 ];
 
 const HISTORY = [
-  { icon: '💳', label: 'Payment at Tacos El Azteca', pts: +13, date: 'Today' },
-  { icon: '💳', label: 'Payment at Café Estadio', pts: +24, date: 'Today' },
-  { icon: '⭐', label: 'Review verified on-chain', pts: +50, date: 'Yesterday' },
-  { icon: '📸', label: 'Photo bonus', pts: +25, date: 'Yesterday' },
-  { icon: '💳', label: 'Payment at Merch Store', pts: +65, date: 'Jun 12' },
-  { icon: '🎁', label: 'Redeemed at Hotel Azteca', pts: -100, date: 'Jun 11' },
+  { emoji: '💳', label: 'Paid · Tacos El Azteca', pts: +12, date: 'Today 1:42 PM' },
+  { emoji: '⚽', label: 'Predicted USA vs GER', pts: +50, date: 'Today 11:00 AM' },
+  { emoji: '🏟️', label: 'Check-in · AT&T Stadium', pts: +250, date: 'Yesterday' },
+  { emoji: '👥', label: 'Refer · Lukas P.', pts: +500, date: 'Mar 11' },
+  { emoji: '🎁', label: 'Redeemed · Hotel voucher', pts: -100, date: 'Mar 10' },
 ];
 
 export default function GoalPoints() {
@@ -51,7 +44,6 @@ export default function GoalPoints() {
     setRedeemAmt(pts);
     setRedeeming(true);
     setTxError(null);
-
     try {
       if (walletConnected) {
         const provider = getProvider();
@@ -60,19 +52,13 @@ export default function GoalPoints() {
         setTxSig(sig);
         await refreshBalances();
       } else {
-        // Mock fallback
         await new Promise(r => setTimeout(r, 900));
         setGoalPoints(goalPoints - pts);
       }
       setRedeemed(true);
-      setTimeout(() => {
-        setRedeemed(false);
-        setRedeemAmt(null);
-        setTxSig(null);
-      }, 4000);
+      setTimeout(() => { setRedeemed(false); setRedeemAmt(null); setTxSig(null); }, 4000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Redemption failed';
-      setTxError(msg.slice(0, 80));
+      setTxError((err instanceof Error ? err.message : 'Redemption failed').slice(0, 80));
       setRedeemAmt(null);
     } finally {
       setRedeeming(false);
@@ -80,184 +66,140 @@ export default function GoalPoints() {
   };
 
   return (
-    <div className="min-h-screen field-bg flex flex-col">
+    <div style={{ minHeight: '100vh', background: '#0a0e1a', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div className="px-5 pt-12 pb-6"
-           style={{ background: 'linear-gradient(180deg, rgba(255,215,0,0.08) 0%, transparent 100%)' }}>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-black text-white">GoalPoints</h1>
-          {walletConnected && (
-            <span className="text-xs text-green-400 font-semibold bg-green-400/10 px-2 py-1 rounded-full">
-              ⚡ On-chain SPL
-            </span>
-          )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 22px 8px' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 12, background: '#131826', display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 6l-6 6 6 6"/>
+          </svg>
         </div>
+        <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 15, color: '#fff' }}>GoalPoints</div>
+        <div style={{ width: 36, height: 36, borderRadius: 12, background: '#131826', display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.06)', color: '#B6BECB' }}>
+          <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 002 2h10a2 2 0 002-2v-5"/>
+          </svg>
+        </div>
+      </div>
 
-        {/* Balance card */}
-        <div className="rounded-3xl p-6 text-center relative overflow-hidden"
-             style={{ background: 'linear-gradient(135deg, #1a1500, #2d2400, #1a1500)', border: '1px solid rgba(255,215,0,0.3)' }}>
-          <div className="absolute inset-0 opacity-5 flex items-center justify-center text-[120px]">⚽</div>
-          <p className="text-yellow-500/70 text-sm font-medium mb-1">Your Balance</p>
+      {/* Balance card */}
+      <div style={{ margin: '8px 16px 0' }}>
+        <div style={{ position: 'relative', background: '#131826', border: '1px solid rgba(255,215,0,0.25)', borderRadius: 24, padding: '24px 22px 22px', overflow: 'hidden', boxShadow: '0 20px 60px -20px rgba(255,215,0,0.4)' }}>
+          <div style={{ position: 'absolute', right: -50, top: -50, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,215,0,0.16) 0%, transparent 65%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 18, top: 18, width: 40, height: 40, borderRadius: 12, background: 'rgba(255,215,0,0.12)', display: 'grid', placeItems: 'center', color: '#FFD700', border: '1px solid rgba(255,215,0,0.3)' }}>
+            <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 4h8v4a4 4 0 11-8 0V4z"/>
+              <path d="M16 6h3v2a3 3 0 01-3 3M8 6H5v2a3 3 0 003 3"/>
+              <path d="M9 13h6v2H9z"/><path d="M8 19h8M10 17v2M14 17v2"/>
+            </svg>
+          </div>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#FFD700', opacity: 0.85 }}>YOUR BALANCE</div>
           {chainLoading ? (
-            <div className="flex items-center justify-center gap-2 py-3">
-              <span className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-            </div>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid #FFD700', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', marginTop: 8 }} />
           ) : (
-            <>
-              <h2 className="text-5xl font-black text-yellow-400 mb-1">{goalPoints.toLocaleString()}</h2>
-              <p className="text-yellow-500/70 text-sm">≈ ${(goalPoints / 100).toFixed(2)} redeemable</p>
-            </>
+            <div style={{ fontFamily: '"Archivo Black", sans-serif', fontSize: 72, color: '#FFD700', lineHeight: 0.9, marginTop: 6, letterSpacing: '-0.05em' }}>{goalPoints.toLocaleString()}</div>
           )}
-
-          {/* World ID 2x multiplier badge */}
-          {worldIdVerified && (
-            <div className="mt-3 inline-flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-3 py-1">
-              <span className="text-xs">🌐</span>
-              <span className="text-xs text-yellow-400 font-bold">2x Multiplier Active (World ID)</span>
-            </div>
-          )}
-
-          <div className="mt-4 flex justify-center gap-4 text-xs text-yellow-800">
-            <span>🏪 Valid at all FanWallet merchants</span>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,215,0,0.7)', marginTop: 6 }}>
+            POINTS · ≈ ${(goalPoints / 100).toFixed(2)} redeemable
           </div>
 
-          {/* Refresh */}
+          {/* 2× multiplier banner */}
+          {worldIdVerified && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, padding: '8px 12px', background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.25)', borderRadius: 12 }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#FFD700', color: '#1a1300', display: 'grid', placeItems: 'center' }}>
+                <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13 2L4 14h7l-2 8 10-13h-7l1-7z"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 12, color: '#FFD700' }}>2× Multiplier Active</div>
+                <div style={{ fontSize: 10.5, color: '#d1c280' }}>World ID verified</div>
+              </div>
+            </div>
+          )}
+
           {walletConnected && (
-            <button
-              onClick={refreshBalances}
-              className="mt-2 text-xs text-yellow-700 hover:text-yellow-500"
-            >
-              ↻ Refresh balance
-            </button>
+            <button onClick={refreshBalances} style={{ marginTop: 8, fontSize: 11, color: 'rgba(255,215,0,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>↻ Refresh balance</button>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="px-5">
-        <div className="flex glass-card rounded-2xl border border-gray-700 p-1 mb-5">
-          {(['earn', 'redeem', 'history'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-xl text-sm font-bold capitalize transition-all ${
-                tab === t
-                  ? 'bg-brand-green text-white'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+      <div style={{ margin: '18px 16px 0', display: 'flex', gap: 4, padding: 4, background: '#131826', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14 }}>
+        {(['earn', 'redeem', 'history'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 11, background: tab === t ? '#FFD700' : 'transparent', color: tab === t ? '#1a1300' : '#B6BECB', fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 12, textTransform: 'capitalize', border: 'none', cursor: 'pointer', transition: 'all 0.15s' }}>
+            {t}
+          </button>
+        ))}
+      </div>
 
+      <div style={{ padding: '14px 16px 100px', flex: 1, overflowY: 'auto' }} className="no-scrollbar">
         {/* EARN */}
-        {tab === 'earn' && (
-          <div className="space-y-3 pb-8">
-            {EARN_WAYS.map((way, i) => (
-              <div key={i} className="glass-card rounded-2xl p-4 border border-gray-700 flex items-center gap-4">
-                <span className="text-2xl">{way.icon}</span>
-                <div className="flex-1">
-                  <p className="font-semibold text-white">{way.label}</p>
-                  <p className="text-xs text-gray-400">{way.desc}</p>
-                </div>
-                <span className="font-black text-brand-green">{way.pts}</span>
-              </div>
-            ))}
-
-            {/* World ID bonus info */}
-            <div className="glass-card rounded-2xl p-4 border border-yellow-500/30 flex items-center gap-4"
-                 style={{ background: 'rgba(255,215,0,0.04)' }}>
-              <span className="text-2xl">🌐</span>
-              <div className="flex-1">
-                <p className="font-semibold text-yellow-400">World ID Verification</p>
-                <p className="text-xs text-gray-400">Verify humanity → earn 2x on all payments</p>
-              </div>
-              <span className="font-black text-yellow-400">2×</span>
+        {tab === 'earn' && EARN_WAYS.map((it, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px', background: '#131826', borderRadius: 16, border: '1px solid rgba(255,255,255,0.04)', marginBottom: 8, cursor: 'pointer' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 13, background: 'rgba(255,255,255,0.04)', display: 'grid', placeItems: 'center', fontSize: 20, flexShrink: 0 }}>
+              {it.emoji}
             </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 13, color: '#fff' }}>{it.title}</div>
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{it.sub}</div>
+            </div>
+            <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 13, color: it.color, flexShrink: 0 }}>{it.pts}</div>
           </div>
-        )}
+        ))}
 
         {/* REDEEM */}
         {tab === 'redeem' && (
-          <div className="space-y-3 pb-8">
+          <div>
             {txError && (
-              <div className="text-xs text-red-400 bg-red-900/20 rounded-xl px-3 py-2">
-                ⚠ {txError}
+              <div style={{ fontSize: 12, color: '#EF4444', background: 'rgba(239,68,68,0.1)', borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>⚠ {txError}</div>
+            )}
+            {redeemed && (
+              <div style={{ fontSize: 12, color: '#00A651', background: 'rgba(0,166,81,0.1)', borderRadius: 12, padding: '10px 12px', marginBottom: 12, textAlign: 'center' }}>
+                ✓ {redeemAmt} GoalPoints redeemed!{txSig && <> · <a href={explorerUrl(txSig)} target="_blank" rel="noreferrer" style={{ color: '#00A651', textDecoration: 'underline' }}>View tx</a></>}
               </div>
             )}
-            {redeemed && txSig && (
-              <div className="text-xs text-green-400 bg-green-900/20 rounded-xl px-3 py-2 text-center">
-                ✓ Burned on-chain ·{' '}
-                <a href={explorerUrl(txSig)} target="_blank" rel="noreferrer" className="underline">
-                  View tx
-                </a>
-              </div>
-            )}
-            {redeemed && !txSig && (
-              <div className="text-xs text-green-400 bg-green-900/20 rounded-xl px-3 py-2 text-center">
-                ✓ {redeemAmt} GoalPoints redeemed!
-              </div>
-            )}
-
-            {REDEEM_OPTIONS.map(opt => (
-              <div
-                key={opt.pts}
-                className={`glass-card rounded-2xl p-4 border flex items-center gap-4 ${
-                  goalPoints >= opt.pts ? 'border-gray-700' : 'border-gray-800 opacity-40'
-                }`}
-              >
-                <div className="text-center">
-                  <p className="text-yellow-400 font-black text-lg">{opt.pts}</p>
-                  <p className="text-xs text-gray-500">pts</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {REDEEM_OPTIONS.map(r => (
+                <div key={r.pts} style={{ background: '#131826', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 12, opacity: goalPoints >= r.pts ? 1 : 0.4 }}>
+                  <div style={{ height: 56, borderRadius: 10, background: r.color, marginBottom: 10, position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.06) 0 6px, transparent 6px 14px)' }} />
+                  </div>
+                  <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 12, color: '#fff' }}>{r.title}</div>
+                  <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11, color: '#FFD700', marginTop: 4 }}>{r.pts.toLocaleString()} pts</div>
+                  <button
+                    onClick={() => handleRedeem(r.pts)}
+                    disabled={goalPoints < r.pts || redeeming}
+                    style={{ marginTop: 10, width: '100%', padding: '8px 0', borderRadius: 10, background: goalPoints >= r.pts ? '#00A651' : '#1a2030', color: '#fff', fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 12, border: 'none', cursor: goalPoints >= r.pts ? 'pointer' : 'default' }}
+                  >
+                    {redeeming && redeemAmt === r.pts ? 'Burning…' : 'Redeem'}
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <p className="font-bold text-white">{opt.value} USDC</p>
-                  <p className="text-xs text-gray-400">{opt.desc}</p>
-                </div>
-                <button
-                  onClick={() => handleRedeem(opt.pts)}
-                  disabled={goalPoints < opt.pts || redeeming}
-                  className="px-4 py-2 rounded-xl font-bold text-sm text-white transition-all active:scale-95 disabled:opacity-40"
-                  style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}
-                >
-                  {redeeming && redeemAmt === opt.pts ? (
-                    <span className="flex items-center gap-1">
-                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      {walletConnected ? 'Burning...' : 'Redeeming...'}
-                    </span>
-                  ) : (
-                    'Redeem'
-                  )}
-                </button>
-              </div>
-            ))}
-
+              ))}
+            </div>
             {!walletConnected && (
-              <p className="text-xs text-gray-600 text-center py-4">
+              <div style={{ fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 16 }}>
                 Connect wallet to burn GoalPoints on-chain
-              </p>
+              </div>
             )}
           </div>
         )}
 
         {/* HISTORY */}
-        {tab === 'history' && (
-          <div className="space-y-2 pb-8">
-            {HISTORY.map((h, i) => (
-              <div key={i} className="flex items-center gap-3 glass-card rounded-2xl p-3 border border-gray-800">
-                <span className="text-xl">{h.icon}</span>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-300">{h.label}</p>
-                  <p className="text-xs text-gray-600">{h.date}</p>
-                </div>
-                <span className={`font-black text-sm ${h.pts > 0 ? 'text-brand-green' : 'text-red-400'}`}>
-                  {h.pts > 0 ? '+' : ''}{h.pts}
-                </span>
+        {tab === 'history' && HISTORY.map((h, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 11, background: '#131826', display: 'grid', placeItems: 'center', fontSize: 16 }}>{h.emoji}</div>
+              <div>
+                <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 13, color: '#fff' }}>{h.label}</div>
+                <div style={{ fontSize: 11, color: '#6b7280' }}>{h.date}</div>
               </div>
-            ))}
+            </div>
+            <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 13, color: h.pts > 0 ? '#FFD700' : '#EF4444' }}>
+              {h.pts > 0 ? '+' : ''}{h.pts}
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
