@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 const CHAINS = [
   { id: 'eth', name: 'Ethereum', icon: '⟠', color: '#627EEA' },
@@ -13,6 +14,7 @@ const CHAINS = [
 
 export default function Deposit() {
   const { setFanScreen, setBalance } = useApp();
+  const isDesktop = useIsDesktop();
   const [step, setStep] = useState(1);
   const [selectedChain, setSelectedChain] = useState<typeof CHAINS[0] | null>(null);
   const [amount, setAmount] = useState('');
@@ -42,9 +44,9 @@ export default function Deposit() {
   const steps = ['Select Chain', 'Connect Wallet', 'Enter Amount', 'Bridging...', 'Success!'];
 
   return (
-    <div className="min-h-screen field-bg flex flex-col">
+    <div className="min-h-screen field-bg flex flex-col" style={isDesktop ? { alignItems: 'center' } : {}}>
       {/* Header */}
-      <div className="px-5 pt-12 pb-4 flex items-center gap-3">
+      <div className="px-5 pt-12 pb-4 flex items-center gap-3" style={isDesktop ? { width: '100%', maxWidth: 600, paddingTop: 40 } : {}}>
         <button onClick={() => setFanScreen('dashboard')}
                 className="w-10 h-10 rounded-2xl glass-card border border-gray-700 flex items-center justify-center">
           ←
@@ -56,7 +58,7 @@ export default function Deposit() {
       </div>
 
       {/* Progress indicator */}
-      <div className="px-5 mb-6">
+      <div className="px-5 mb-6" style={isDesktop ? { width: '100%', maxWidth: 600 } : {}}>
         <div className="flex items-center gap-1">
           {steps.map((s, i) => (
             <React.Fragment key={s}>
@@ -76,7 +78,7 @@ export default function Deposit() {
         <p className="text-center text-sm font-medium text-gray-300 mt-2">{steps[step - 1]}</p>
       </div>
 
-      <div className="px-5 flex-1">
+      <div className="px-5 flex-1" style={isDesktop ? { width: '100%', maxWidth: 600 } : {}}>
         {/* Step 1: Select Chain */}
         {step === 1 && (
           <div className="animate-slide-up">

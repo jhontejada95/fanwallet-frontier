@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
 import { LogoMark } from '../LogoMark';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 function QRDisplay({ data }: { data: string }) {
   const pattern = React.useMemo(() => {
@@ -43,6 +44,7 @@ function CornerBracket({ pos }: { pos: 'tl' | 'tr' | 'bl' | 'br' }) {
 
 export default function PayQR() {
   const { setFanScreen, balance, walletAddress: ctxAddr } = useApp();
+  const isDesktop = useIsDesktop();
   const [copied, setCopied] = useState(false);
   const walletAddress = ctxAddr || 'CFi91VLHPRFBYdKtNSJst56DTQ5jPQ6oxRvMjx9eYP3g';
   const displayBalance = balance > 0 ? balance : 124.50;
@@ -54,14 +56,79 @@ export default function PayQR() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const infoCards = [
+    { emoji: '⚡', title: 'Instant Settlement', sub: 'Payments confirm in under 1 second on Solana', bg: 'rgba(0,166,81,0.15)' },
+    { emoji: '⭐', title: 'Earn GoalPoints', sub: '1 point per $1 spent · Redeem for discounts', bg: 'rgba(255,215,0,0.12)' },
+    { emoji: '🔒', title: 'Non-custodial', sub: 'Your keys, your funds — no intermediaries', bg: 'rgba(139,92,246,0.12)' },
+  ];
+
+  if (isDesktop) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0e1a', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,166,81,0.18) 0%, transparent 65%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 900, width: '100%', padding: '40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, position: 'relative', zIndex: 2 }}>
+          {/* Left: QR */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+            <div>
+              <div style={{ fontFamily: '"Archivo Black", sans-serif', fontSize: 28, color: '#fff', letterSpacing: '-0.02em', marginBottom: 6 }}>Receive Payment</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#131826', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', width: 'fit-content' }}>
+                <span style={{ fontSize: 14 }}>💰</span>
+                <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, color: '#fff', fontSize: 14 }}>${displayBalance.toFixed(2)} USDC</span>
+                <span style={{ color: '#6b7280', fontSize: 12 }}>available</span>
+              </div>
+            </div>
+            <div style={{ position: 'relative', background: '#fff', borderRadius: 26, padding: 20, boxShadow: '0 0 0 1px rgba(0,166,81,0.5), 0 30px 80px -20px rgba(0,166,81,0.6)' }}>
+              <QRDisplay data={walletAddress} />
+              <CornerBracket pos="tl" />
+              <CornerBracket pos="tr" />
+              <CornerBracket pos="bl" />
+              <CornerBracket pos="br" />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7280' }}>YOUR WALLET</div>
+              <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 14, color: '#00A651', marginTop: 4 }}>Solana Pay · Devnet</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+                <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 13, color: '#fff' }}>{shortAddr}</span>
+                <button onClick={handleCopy} style={{ fontSize: 11, color: '#00A651', fontFamily: 'Archivo, sans-serif', fontWeight: 700, padding: '4px 10px', borderRadius: 8, background: 'rgba(0,166,81,0.1)', border: 'none', cursor: 'pointer' }}>
+                  {copied ? '✓ Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: info + actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16 }}>
+            <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6b7280' }}>HOW IT WORKS</div>
+            {infoCards.map((info, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', background: '#131826', borderRadius: 18, border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: info.bg, display: 'grid', placeItems: 'center', fontSize: 20, flexShrink: 0 }}>{info.emoji}</div>
+                <div>
+                  <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 14, color: '#fff' }}>{info.title}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>{info.sub}</div>
+                </div>
+              </div>
+            ))}
+            <button onClick={handleCopy} style={{ marginTop: 8, padding: '16px 22px', borderRadius: 999, background: '#00A651', color: '#001b0b', fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 16, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/>
+              </svg>
+              {copied ? '✓ Address Copied!' : 'Copy Address'}
+            </button>
+            <button onClick={() => setFanScreen('dashboard')} style={{ padding: '12px 22px', borderRadius: 999, background: 'transparent', color: '#6b7280', fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 14, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+              ← Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#0a0e1a', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 22px 8px', position: 'relative', zIndex: 2 }}>
         <button onClick={() => setFanScreen('dashboard')} style={{ width: 36, height: 36, borderRadius: 12, background: '#131826', display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.06)', color: '#B6BECB', cursor: 'pointer' }}>
-          <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
+          <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
         <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 15, color: '#fff' }}>Receive payment</div>
         <button onClick={handleCopy} style={{ width: 36, height: 36, borderRadius: 12, background: '#131826', display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.06)', color: '#B6BECB', cursor: 'pointer' }}>
@@ -71,10 +138,8 @@ export default function PayQR() {
         </button>
       </div>
 
-      {/* Green glow */}
       <div style={{ position: 'absolute', left: '50%', top: '46%', transform: 'translate(-50%,-50%)', width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,166,81,0.32) 0%, transparent 65%)', pointerEvents: 'none' }} />
 
-      {/* Balance pill */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: '#131826', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)' }}>
           <span style={{ color: '#00A651', fontSize: 14 }}>💰</span>
@@ -83,7 +148,6 @@ export default function PayQR() {
         </div>
       </div>
 
-      {/* QR card */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20, position: 'relative', zIndex: 2 }}>
         <div style={{ position: 'relative', background: '#fff', borderRadius: 26, padding: 18, boxShadow: '0 0 0 1px rgba(0,166,81,0.5), 0 30px 80px -20px rgba(0,166,81,0.6)' }}>
           <QRDisplay data={walletAddress} />
@@ -94,7 +158,6 @@ export default function PayQR() {
         </div>
       </div>
 
-      {/* Info */}
       <div style={{ textAlign: 'center', marginTop: 24, padding: '0 22px', position: 'relative', zIndex: 2 }}>
         <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7280' }}>YOUR WALLET</div>
         <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 14, color: '#00A651', marginTop: 4 }}>Solana Pay · Devnet</div>
@@ -106,14 +169,10 @@ export default function PayQR() {
         </div>
       </div>
 
-      {/* Info cards */}
       <div style={{ padding: '20px 22px 0', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', zIndex: 2 }}>
-        {[
-          { emoji: '⚡', title: 'Instant Settlement', sub: 'Payments confirm in under 1 second on Solana' },
-          { emoji: '⭐', title: 'Earn GoalPoints', sub: '1 point per $1 spent · Redeem for discounts' },
-        ].map((info, i) => (
+        {infoCards.slice(0, 2).map((info, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#131826', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 11, background: i === 0 ? 'rgba(0,166,81,0.15)' : 'rgba(255,215,0,0.12)', display: 'grid', placeItems: 'center', fontSize: 16 }}>{info.emoji}</div>
+            <div style={{ width: 36, height: 36, borderRadius: 11, background: info.bg, display: 'grid', placeItems: 'center', fontSize: 16 }}>{info.emoji}</div>
             <div>
               <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 13, color: '#fff' }}>{info.title}</div>
               <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{info.sub}</div>
@@ -122,7 +181,6 @@ export default function PayQR() {
         ))}
       </div>
 
-      {/* CTA */}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 24, padding: '0 22px', zIndex: 2 }}>
         <button style={{ width: '100%', padding: '18px 22px', borderRadius: 999, background: '#00A651', color: '#001b0b', fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 16, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
           <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">

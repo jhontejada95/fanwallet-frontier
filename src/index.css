@@ -76,23 +76,52 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
-/* ── Mobile container ─────────────────────────────────────────────────────── */
-.mobile-container {
+/* ── App shell ────────────────────────────────────────────────────────────── */
+.app-shell {
   width: 100%;
-  max-width: 430px;
   min-height: 100vh;
-  position: relative;
-  overflow: hidden;
   background: var(--bg);
 }
 
-@media (min-width: 640px) {
-  .mobile-container {
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 120px -20px rgba(0,166,81,0.25);
+/* ── Page wrapper — centers content with max-width on desktop ─────────────── */
+.page-wrap {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+@media (min-width: 768px) {
+  .page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 64px; /* height of desktop top nav */
   }
-  body {
-    background: #070a12;
+}
+
+/* ── Inner content area — horizontal padding ──────────────────────────────── */
+.content-pad {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+@media (min-width: 768px) {
+  .content-pad {
+    padding-left: 40px;
+    padding-right: 40px;
   }
+}
+
+/* Desktop top-nav spacer (replaces bottom nav pb-20 on mobile) */
+@media (min-width: 768px) {
+  .nav-spacer { padding-top: 0 !important; padding-bottom: 32px !important; }
+}
+
+/* ── Legacy mobile-container kept for any remaining usage ─────────────────── */
+.mobile-container {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  background: var(--bg);
 }
 
 /* ── Glass card ───────────────────────────────────────────────────────────── */

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
 import { explorerUrl } from '../../lib/solana';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 const QUICK_AMOUNTS = [10, 25, 50, 100];
 
@@ -12,6 +13,7 @@ const RECENT_CONTACTS = [
 
 export default function Send() {
   const { setFanScreen, balance, setBalance, walletConnected, refreshBalances } = useApp();
+  const isDesktop = useIsDesktop();
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [recipient, setRecipient] = useState('');
@@ -46,8 +48,8 @@ export default function Send() {
   };
 
   return (
-    <div className="min-h-screen field-bg flex flex-col">
-      <div className="px-5 pt-12 pb-4 flex items-center gap-3">
+    <div className="min-h-screen field-bg flex flex-col" style={isDesktop ? { alignItems: 'center' } : {}}>
+      <div className="px-5 pt-12 pb-4 flex items-center gap-3" style={isDesktop ? { width: '100%', maxWidth: 580, paddingTop: 40 } : {}}>
         <button
           onClick={() => setFanScreen('dashboard')}
           className="w-10 h-10 rounded-2xl glass-card border border-gray-700 flex items-center justify-center text-white"
@@ -64,7 +66,7 @@ export default function Send() {
         </div>
       </div>
 
-      <div className="px-5 flex-1 pb-8">
+      <div className="px-5 flex-1 pb-8" style={isDesktop ? { width: '100%', maxWidth: 580 } : {}}>
         {/* Step 1: Recipient */}
         {step === 1 && (
           <div className="space-y-4 animate-slide-up">

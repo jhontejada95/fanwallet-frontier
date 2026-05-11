@@ -105,7 +105,7 @@ export default function FanAgent({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
-      <div className="flex-1 flex flex-col max-w-[430px] mx-auto w-full">
+      <div className="flex-1 flex flex-col max-w-[650px] mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-12 pb-4">
           <div className="flex items-center gap-3">

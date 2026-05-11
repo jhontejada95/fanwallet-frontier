@@ -80,7 +80,7 @@ export default function SmartWallet({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center"
          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)' }}>
-      <div className="w-full max-w-[430px] glass-card rounded-t-3xl border-t border-gray-700 p-6 animate-slide-up max-h-[85vh] overflow-y-auto">
+      <div className="w-full max-w-[700px] glass-card rounded-t-3xl border-t border-gray-700 p-6 animate-slide-up max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-xl">

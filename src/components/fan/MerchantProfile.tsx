@@ -15,6 +15,7 @@ import { MERCHANTS, REVIEWS } from '../../lib/mockData';
 import { processPayment, explorerUrl } from '../../lib/solana';
 import VanishPayment from './VanishPayment';
 import MerchantInsights from './MerchantInsights';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 // Pre-computed stable confetti (no Math.random on render)
 const CONFETTI_PIECES = Array.from({ length: 24 }, (_, i) => {
@@ -35,6 +36,7 @@ export default function MerchantProfile() {
     walletConnected, balance, setBalance, setGoalPoints, goalPoints,
     getProvider, refreshBalances,
   } = useApp();
+  const isDesktop = useIsDesktop();
 
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -85,7 +87,8 @@ export default function MerchantProfile() {
   };
 
   return (
-    <div className="min-h-screen field-bg overflow-y-auto">
+    <div className="min-h-screen field-bg overflow-y-auto" style={isDesktop ? { display: 'flex', justifyContent: 'center' } : {}}>
+    <div style={isDesktop ? { maxWidth: 720, width: '100%', padding: '0 0 60px' } : {}}>
       {/* ── Vanish overlay ── */}
       {showVanish && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end"
@@ -350,6 +353,6 @@ export default function MerchantProfile() {
           <div className="absolute inset-0 flex items-center justify-center text-6xl animate-bounce-in">⚽</div>
         </div>
       )}
-    </div>
+    </div></div>
   );
 }

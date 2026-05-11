@@ -12,6 +12,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useApp } from '../../lib/appContext';
 import { COUNTRIES } from '../../lib/mockData';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 export default function Onboarding() {
   const {
@@ -25,6 +26,7 @@ export default function Onboarding() {
   } = useApp();
   const { disconnect } = useWallet();
   const { setVisible } = useWalletModal();
+  const isDesktop = useIsDesktop();
 
   const [step, setStep] = useState<'country' | 'wallet' | 'ready'>('country');
   const [selected, setSelected] = useState<typeof COUNTRIES[0] | null>(null);
@@ -68,7 +70,7 @@ export default function Onboarding() {
 
     return (
       <div className="min-h-screen field-bg flex flex-col items-center justify-center px-6 py-12">
-        <div className="text-center animate-bounce-in w-full">
+        <div className="text-center animate-bounce-in" style={{ width: '100%', maxWidth: isDesktop ? 480 : '100%' }}>
           <div className="text-8xl mb-4">{selected.flag}</div>
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 glow-green animate-scale-in"
@@ -151,7 +153,8 @@ export default function Onboarding() {
   // ── WALLET CONNECTION ──────────────────────────────────────────────────────
   if (step === 'wallet') {
     return (
-      <div className="min-h-screen field-bg flex flex-col px-6 py-16 animate-slide-up">
+      <div className="min-h-screen field-bg flex flex-col items-center px-6 py-16 animate-slide-up">
+      <div style={{ width: '100%', maxWidth: isDesktop ? 480 : '100%' }}>
         <div className="mb-8 text-center">
           <div className="text-5xl mb-3">{selected?.flag}</div>
           <h2 className="text-2xl font-black text-white">Connect your wallet</h2>
@@ -229,44 +232,46 @@ export default function Onboarding() {
         >
           Continue in Demo Mode →
         </button>
-      </div>
+      </div></div>
     );
   }
 
   // ── COUNTRY SELECT ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen field-bg flex flex-col px-6 py-12 animate-fade-in">
-      <div className="text-center mb-8">
-        <div className="text-5xl mb-3">🌍</div>
-        <h2 className="text-2xl font-black text-white">Where are you from?</h2>
-        <p className="text-gray-400 text-sm mt-1">We'll personalize your experience</p>
-      </div>
+    <div className="min-h-screen field-bg flex flex-col items-center px-6 py-12 animate-fade-in">
+      <div style={{ width: '100%', maxWidth: isDesktop ? 720 : '100%' }}>
+        <div className="text-center mb-8">
+          <div className="text-5xl mb-3">🌍</div>
+          <h2 className="text-2xl font-black text-white">Where are you from?</h2>
+          <p className="text-gray-400 text-sm mt-1">We'll personalize your experience</p>
+        </div>
 
-      <div className="relative mb-4">
-        <input
-          type="text"
-          placeholder="Search country..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full glass-card rounded-2xl px-4 py-3 text-white placeholder-gray-500 border border-gray-700 focus:border-brand-green outline-none transition-colors"
-        />
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
-      </div>
+        <div className="relative mb-4">
+          <input
+            type="text"
+            placeholder="Search country..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full glass-card rounded-2xl px-4 py-3 text-white placeholder-gray-500 border border-gray-700 focus:border-brand-green outline-none transition-colors"
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3 overflow-y-auto" style={{ maxHeight: '60vh' }}>
-        {filtered.map(country => (
-          <button
-            key={country.code}
-            onClick={() => handleCountrySelect(country)}
-            className="glass-card rounded-2xl p-4 flex items-center gap-3 border border-gray-700 hover:border-gray-500 transition-all active:scale-95"
-          >
-            <span className="text-3xl">{country.flag}</span>
-            <div className="text-left">
-              <p className="font-semibold text-white text-sm">{country.name}</p>
-              <p className="text-xs text-gray-500">{country.currency}</p>
-            </div>
-          </button>
-        ))}
+        <div className={`gap-3 overflow-y-auto`} style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)', maxHeight: '60vh' }}>
+          {filtered.map(country => (
+            <button
+              key={country.code}
+              onClick={() => handleCountrySelect(country)}
+              className="glass-card rounded-2xl p-4 flex items-center gap-3 border border-gray-700 hover:border-gray-500 transition-all active:scale-95"
+            >
+              <span className="text-3xl">{country.flag}</span>
+              <div className="text-left">
+                <p className="font-semibold text-white text-sm">{country.name}</p>
+                <p className="text-xs text-gray-500">{country.currency}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

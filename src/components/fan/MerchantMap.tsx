@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../lib/appContext';
 import { MERCHANTS } from '../../lib/mockData';
+import { useIsDesktop } from '../../hooks/useIsDesktop';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', emoji: '🗺️' },
@@ -92,8 +93,43 @@ function MockMap({ merchants, onSelect, selected }: {
   );
 }
 
+const MerchantCard = ({ merchant, isSelected, onClick }: { merchant: typeof MERCHANTS[0]; isSelected: boolean; onClick: () => void }) => (
+  <button onClick={onClick}
+    className={`w-full glass-card rounded-2xl p-4 border text-left active:scale-98 transition-all ${isSelected ? 'border-brand-green' : 'border-gray-700'}`}>
+    <div className="flex items-start gap-3">
+      <div className="w-12 h-12 rounded-2xl bg-gray-800 flex items-center justify-center text-2xl shrink-0">{merchant.emoji}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="font-bold text-white">{merchant.name}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-yellow-400 text-xs">★ {merchant.rating}</span>
+              <span className="text-gray-600 text-xs">·</span>
+              <span className="text-gray-400 text-xs">{merchant.reviewCount} reviews</span>
+              <span className="text-gray-600 text-xs">·</span>
+              <span className="text-gray-400 text-xs">{merchant.distance}</span>
+            </div>
+          </div>
+          {merchant.pointsMultiplier > 1 && (
+            <span className="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full shrink-0">{merchant.pointsMultiplier}x pts</span>
+          )}
+        </div>
+        {merchant.deal && (
+          <div className="mt-2 bg-brand-green/10 border border-brand-green/20 rounded-xl px-3 py-1.5">
+            <p className="text-xs text-brand-green font-semibold">{merchant.deal.title}</p>
+          </div>
+        )}
+        <div className="flex gap-1 mt-2">
+          {merchant.languages.map(l => <span key={l} className="text-xs text-gray-600">{l.split(' ')[0]}</span>)}
+        </div>
+      </div>
+    </div>
+  </button>
+);
+
 export default function MerchantMap() {
   const { setFanScreen, setSelectedMerchant } = useApp();
+  const isDesktop = useIsDesktop();
   const [category, setCategory] = useState('all');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
@@ -105,14 +141,53 @@ export default function MerchantMap() {
     (!activeFilters.includes('deals') || m.deal !== null)
   );
 
-  const handleView = (id: string) => {
-    setSelectedMerchant(id);
-    setFanScreen('merchant');
-  };
+  const handleView = (id: string) => { setSelectedMerchant(id); setFanScreen('merchant'); };
+  const toggleFilter = (f: string) => setActiveFilters(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
 
-  const toggleFilter = (f: string) => {
-    setActiveFilters(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
-  };
+  const filterBar = (
+    <>
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-3">
+        {CATEGORIES.map(cat => (
+          <button key={cat.id} onClick={() => setCategory(cat.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${category === cat.id ? 'bg-brand-green text-white' : 'glass-card text-gray-400 border border-gray-700'}`}>
+            <span>{cat.emoji}</span>{cat.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2 mb-4">
+        {FILTERS.map(f => (
+          <button key={f.id} onClick={() => toggleFilter(f.id)}
+            className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border ${activeFilters.includes(f.id) ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' : 'glass-card text-gray-500 border-gray-700'}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  if (isDesktop) {
+    return (
+      <div className="min-h-screen field-bg">
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 40px 60px' }}>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="font-black text-white text-2xl">Discover</h1>
+              <p className="text-sm text-gray-400">{filtered.length} FanWallet merchants nearby</p>
+            </div>
+          </div>
+          {filterBar}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 24 }}>
+            <div>
+              <MockMap merchants={filtered} onSelect={setSelectedPin} selected={selectedPin} />
+            </div>
+            <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '70vh' }}>
+              {filtered.map(m => <MerchantCard key={m.id} merchant={m} isSelected={selectedPin === m.id} onClick={() => handleView(m.id)} />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen field-bg flex flex-col">
@@ -123,109 +198,20 @@ export default function MerchantMap() {
         </div>
         <div className="flex gap-2">
           <button onClick={() => setView('map')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${view === 'map' ? 'bg-brand-green text-white' : 'glass-card text-gray-400 border border-gray-700'}`}>
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${view === 'map' ? 'bg-brand-green text-white' : 'glass-card text-gray-400 border border-gray-700'}`}>
             🗺️ Map
           </button>
           <button onClick={() => setView('list')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${view === 'list' ? 'bg-brand-green text-white' : 'glass-card text-gray-400 border border-gray-700'}`}>
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${view === 'list' ? 'bg-brand-green text-white' : 'glass-card text-gray-400 border border-gray-700'}`}>
             ☰ List
           </button>
         </div>
       </div>
-
-      {/* Category filters */}
-      <div className="px-5 mb-3">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setCategory(cat.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                category === cat.id
-                  ? 'bg-brand-green text-white'
-                  : 'glass-card text-gray-400 border border-gray-700'
-              }`}
-            >
-              <span>{cat.emoji}</span>
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Toggle filters */}
-      <div className="px-5 mb-4">
-        <div className="flex gap-2">
-          {FILTERS.map(f => (
-            <button
-              key={f.id}
-              onClick={() => toggleFilter(f.id)}
-              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border ${
-                activeFilters.includes(f.id)
-                  ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'
-                  : 'glass-card text-gray-500 border-gray-700'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
+      <div className="px-5">{filterBar}</div>
       <div className="px-5 flex-1 overflow-y-auto">
-        {/* Map */}
-        {view === 'map' && (
-          <div className="mb-4">
-            <MockMap merchants={filtered} onSelect={setSelectedPin} selected={selectedPin} />
-          </div>
-        )}
-
-        {/* Merchant list */}
+        {view === 'map' && <div className="mb-4"><MockMap merchants={filtered} onSelect={setSelectedPin} selected={selectedPin} /></div>}
         <div className="space-y-3 pb-4">
-          {filtered.map(merchant => (
-            <button
-              key={merchant.id}
-              onClick={() => handleView(merchant.id)}
-              className={`w-full glass-card rounded-2xl p-4 border text-left active:scale-98 transition-all ${
-                selectedPin === merchant.id ? 'border-brand-green' : 'border-gray-700'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gray-800 flex items-center justify-center text-2xl shrink-0">
-                  {merchant.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-bold text-white">{merchant.name}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-yellow-400 text-xs">★ {merchant.rating}</span>
-                        <span className="text-gray-600 text-xs">·</span>
-                        <span className="text-gray-400 text-xs">{merchant.reviewCount} reviews</span>
-                        <span className="text-gray-600 text-xs">·</span>
-                        <span className="text-gray-400 text-xs">{merchant.distance}</span>
-                      </div>
-                    </div>
-                    {merchant.pointsMultiplier > 1 && (
-                      <span className="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full shrink-0">
-                        {merchant.pointsMultiplier}x pts
-                      </span>
-                    )}
-                  </div>
-                  {merchant.deal && (
-                    <div className="mt-2 bg-brand-green/10 border border-brand-green/20 rounded-xl px-3 py-1.5">
-                      <p className="text-xs text-brand-green font-semibold">{merchant.deal.title}</p>
-                    </div>
-                  )}
-                  <div className="flex gap-1 mt-2">
-                    {merchant.languages.map(l => (
-                      <span key={l} className="text-xs text-gray-600">{l.split(' ')[0]}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
+          {filtered.map(m => <MerchantCard key={m.id} merchant={m} isSelected={selectedPin === m.id} onClick={() => handleView(m.id)} />)}
         </div>
       </div>
     </div>
