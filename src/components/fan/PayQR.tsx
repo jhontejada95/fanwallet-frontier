@@ -79,14 +79,47 @@ interface ScannerProps {
   onManual: () => void;
 }
 
+function decodeQRFromImage(file: File, onResult: (d: SolanaPayData) => void, onError: (msg: string) => void) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 1024;
+      const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+      const w = Math.floor(img.width * scale);
+      const h = Math.floor(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { onError('Canvas not available'); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
+      if (code?.data) {
+        const parsed = parseSolanaPayQR(code.data);
+        if (parsed) { onResult(parsed); return; }
+      }
+      onError('No valid Solana Pay QR found in the photo. Try again.');
+    };
+    img.src = ev.target?.result as string;
+  };
+  reader.readAsDataURL(file);
+}
+
 function QRScanner({ onResult, onManual }: ScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [canvasBlocked, setCanvasBlocked] = useState(false);
 
   const onResultRef = useRef(onResult);
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
+
+  const canvasFailRef = useRef(0);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -98,13 +131,11 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
       if (!active || found) return;
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      // readyState >= 2 = HAVE_CURRENT_DATA or better — video frame is available
       if (!canvas || !video || video.readyState < 2) return;
       const srcW = video.videoWidth;
       const srcH = video.videoHeight;
       if (srcW === 0 || srcH === 0) return;
 
-      // Scale down to max 640px wide for jsQR performance
       const scale = Math.min(640 / srcW, 1);
       const w = Math.floor(srcW * scale);
       const h = Math.floor(srcH * scale);
@@ -118,8 +149,19 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
       let imgData: ImageData | null = null;
       try {
         imgData = ctx.getImageData(0, 0, w, h);
+        canvasFailRef.current = 0;
       } catch {
-        // canvas tainted or restricted in this webview — skip frame
+        canvasFailRef.current++;
+        // After 5 failed frames, surface the photo-capture option prominently
+        if (canvasFailRef.current >= 5) setCanvasBlocked(true);
+        return;
+      }
+
+      // Check if frame is all-black (canvas reads zeros in restricted sandbox)
+      const isBlack = imgData.data.every((v, i) => i % 4 === 3 || v === 0);
+      if (isBlack) {
+        canvasFailRef.current++;
+        if (canvasFailRef.current >= 5) setCanvasBlocked(true);
         return;
       }
 
@@ -142,13 +184,11 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
         const video = videoRef.current;
         if (!video) return;
         video.srcObject = stream;
-        video.setAttribute('playsinline', 'true');
         await video.play();
         setReady(true);
-        // Use setInterval — more reliable than rAF in PWA/in-app browsers
         intervalId = setInterval(scan, 200);
       } catch {
-        setCameraError('Camera access denied. Allow camera permissions or enter the address manually.');
+        setCameraError('Camera access denied.');
       }
     };
 
@@ -158,18 +198,50 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
       clearInterval(intervalId);
       stream?.getTracks().forEach(t => t.stop());
     };
-  }, []); // run once
+  }, []);
+
+  const handleFileCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    decodeQRFromImage(file, onResultRef.current, setPhotoError);
+    e.target.value = '';
+  };
+
+  // Photo capture button — always available, bypasses canvas restrictions
+  const photoBtn = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {canvasBlocked && !cameraError && (
+        <div style={{ fontSize: 12, color: '#FFD700', background: 'rgba(255,215,0,0.08)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' as const, border: '1px solid rgba(255,215,0,0.2)' }}>
+          ⚠ Live scan unavailable in this browser — use the photo option below
+        </div>
+      )}
+      {photoError && (
+        <div style={{ fontSize: 12, color: '#EF4444', background: 'rgba(239,68,68,0.08)', borderRadius: 10, padding: '8px 12px', textAlign: 'center' as const }}>
+          {photoError}
+        </div>
+      )}
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        style={{ padding: '13px', borderRadius: 14, background: canvasBlocked ? '#00A651' : 'rgba(0,166,81,0.12)', color: canvasBlocked ? '#001b0b' : '#00A651', fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 14, border: `1px solid ${canvasBlocked ? '#00A651' : 'rgba(0,166,81,0.3)'}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+      >
+        📷 Take photo of QR code
+      </button>
+      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileCapture} style={{ display: 'none' }} />
+    </div>
+  );
 
   if (cameraError) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '24px 0' }}>
-        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.12)', display: 'grid', placeItems: 'center', fontSize: 24 }}>📵</div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 14, color: '#fff', marginBottom: 6 }}>Camera unavailable</div>
-          <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>{cameraError}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+        <div style={{ textAlign: 'center' as const, padding: '16px 0' }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>📵</div>
+          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 14, color: '#fff', marginBottom: 4 }}>Live scan unavailable</div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>{cameraError}</div>
         </div>
-        <button onClick={onManual} style={{ padding: '12px 24px', borderRadius: 999, background: '#00A651', color: '#001b0b', fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer' }}>
-          Enter address manually
+        {photoBtn}
+        <button onClick={onManual} style={{ padding: '10px', borderRadius: 12, background: 'transparent', color: '#6b7280', fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 12, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
+          Enter address manually instead
         </button>
       </div>
     );
@@ -177,9 +249,9 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Hidden canvas used for frame capture — never displayed */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
+      {/* Live video view */}
       <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', background: '#000', aspectRatio: '1', width: '100%' }}>
         <video
           ref={videoRef}
@@ -189,35 +261,31 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
 
-        {/* Scan frame overlay */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          {/* Dark vignette outside scan area */}
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
           <div style={{ width: '62%', aspectRatio: '1', position: 'relative', zIndex: 1 }}>
-            {/* Cutout: transparent inside, dark outside (via box-shadow) */}
             <div style={{ position: 'absolute', inset: 0, boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)', borderRadius: 4 }} />
             {(['tl','tr','bl','br'] as const).map(pos => <CornerBracket key={pos} pos={pos} />)}
           </div>
         </div>
 
-        {/* Scan line — only shown once camera is ready */}
-        {ready && (
+        {ready && !canvasBlocked && (
           <div style={{ position: 'absolute', left: '19%', right: '19%', height: 2.5, borderRadius: 2, background: 'linear-gradient(90deg, transparent, #00A651 20%, #00C962 50%, #00A651 80%, transparent)', animation: 'scanLine 2s ease-in-out infinite', zIndex: 2 }} />
         )}
         <style>{`@keyframes scanLine { 0%,100%{top:19%} 50%{top:81%} }`}</style>
 
-        {/* Status badge */}
         {ready && (
           <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', borderRadius: 999, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6, zIndex: 2 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00A651', animation: 'pulse 1.5s ease-in-out infinite', display: 'inline-block' }} />
-            <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 11, color: '#fff' }}>Scanning…</span>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: canvasBlocked ? '#FFD700' : '#00A651', animation: 'pulse 1.5s ease-in-out infinite', display: 'inline-block' }} />
+            <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 11, color: '#fff' }}>
+              {canvasBlocked ? 'Use photo option below' : 'Scanning…'}
+            </span>
           </div>
         )}
       </div>
 
-      <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7280' }}>
-        Point the camera at the merchant's Solana Pay QR code
-      </div>
+      {/* Photo capture — always visible, works in all browsers */}
+      {photoBtn}
 
       <button onClick={onManual} style={{ padding: '10px', borderRadius: 12, background: 'transparent', color: '#6b7280', fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 12, border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>
         Enter address manually instead
