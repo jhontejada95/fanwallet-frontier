@@ -1,39 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
+import { QRCodeSVG } from 'qrcode.react';
 import { useApp } from '../../lib/appContext';
 import { subscribeToPayments, explorerUrl } from '../../lib/solana';
-
-// Stable QR visual — pattern is memoized, never re-randomized on re-render
-const QR_PATTERN = (() => {
-  let s = 0xdeadbeef;
-  return Array.from({ length: 49 }, (_, i) => {
-    const edges = i < 7 || i >= 42 || i % 7 === 0 || i % 7 === 6;
-    if (edges) return true;
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return (s >>> 16 & 1) === 1;
-  });
-})();
-
-function QRDisplay() {
-  return (
-    <div className="bg-white rounded-3xl p-5 inline-block shadow-2xl">
-      <div className="w-48 h-48 relative">
-        <div className="absolute inset-0 grid grid-cols-7 gap-0.5 p-2">
-          {QR_PATTERN.map((dark, i) => (
-            <div key={i} className={`rounded-sm ${dark ? 'bg-black' : 'bg-white'}`} style={{ minHeight: 7 }} />
-          ))}
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-2 shadow">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                 style={{ background: 'linear-gradient(135deg, #00A651, #007A3D)' }}>⚽</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 // Pre-computed confetti so it doesn't re-randomize on parent re-renders
 const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => {
@@ -73,7 +43,7 @@ function ConfettiOverlay() {
 }
 
 export default function POSMode() {
-  const { setBizScreen } = useApp();
+  const { setBizScreen, bizWalletAddress, bizName } = useApp();
   const wallet = useWallet();
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const [amount, setAmount] = useState('');
@@ -94,6 +64,15 @@ export default function POSMode() {
     ? currency === 'MXN' ? (parseFloat(amount) / 17.6).toFixed(2) : parseFloat(amount).toFixed(2)
     : '0.00';
 
+  // Real Solana Pay URI — merchant wallet is bizWalletAddress (registered) or connected wallet
+  const merchantAddress = bizWalletAddress || wallet.publicKey?.toBase58() || '';
+  const shortAddr = merchantAddress
+    ? `${merchantAddress.slice(0, 4)}...${merchantAddress.slice(-4)}`
+    : '—';
+  const solanaPayUri = merchantAddress && usdcAmount !== '0.00'
+    ? `solana:${merchantAddress}?amount=${usdcAmount}&label=${encodeURIComponent(bizName)}&message=FanWallet`
+    : '';
+
   const handleKey = (key: string) => {
     if (key === '⌫') {
       setAmount(prev => prev.slice(0, -1));
@@ -106,15 +85,22 @@ export default function POSMode() {
     }
   };
 
-  // Start real WebSocket listener when wallet connected, entering waiting state
+  // Subscribe to real payments on the MERCHANT wallet (not the currently connected one)
   useEffect(() => {
-    if (stage !== 'waiting' || !wallet.publicKey) return;
+    if (stage !== 'waiting' || !merchantAddress) return;
+
+    let merchantPK: PublicKey | null = null;
+    try {
+      merchantPK = new PublicKey(merchantAddress);
+    } catch {
+      return;
+    }
 
     setWsConnected(true);
     const expectedUsdc = parseFloat(usdcAmount);
 
-    const unsub = subscribeToPayments(wallet.publicKey, (receivedUsdc, sig) => {
-      if (receivedUsdc >= expectedUsdc * 0.99) { // 1% tolerance
+    const unsub = subscribeToPayments(merchantPK, (receivedUsdc, sig) => {
+      if (receivedUsdc >= expectedUsdc * 0.99) {
         setLiveTxSig(sig);
         const pts = Math.round(receivedUsdc * 2);
         setFanData({ flag: '🌐', country: 'On-chain', points: pts });
@@ -129,7 +115,7 @@ export default function POSMode() {
       unsub();
       setWsConnected(false);
     };
-  }, [stage, wallet.publicKey, usdcAmount]);
+  }, [stage, merchantAddress, usdcAmount]);
 
   const handleGenerateQR = () => {
     if (!amount || parseFloat(amount) <= 0) return;
@@ -137,8 +123,8 @@ export default function POSMode() {
     setTimeout(() => {
       setStage('waiting');
 
-      if (!wallet.publicKey) {
-        // Mock fallback — no real wallet
+      // Mock fallback — no wallet connected at all
+      if (!merchantAddress) {
         setTimeout(() => {
           const fans = [
             { flag: '🇧🇷', country: 'Brazil' },
@@ -156,13 +142,13 @@ export default function POSMode() {
           setTimeout(() => setConfetti(false), 3000);
         }, 3000);
       }
-      // Real wallet: useEffect above handles WebSocket listener
     }, 500);
   };
 
   const handleNewTx = () => {
     setAmount('');
     setStage('input');
+    setLiveTxSig(null);
   };
 
   const keys = ['1','2','3','4','5','6','7','8','9','.','0','⌫'];
@@ -184,7 +170,9 @@ export default function POSMode() {
             <h1 className="font-black text-white text-lg">POS Mode</h1>
             <div className="flex items-center gap-1">
               <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
-              <span className="text-xs text-brand-green">Ready to accept</span>
+              <span className="text-xs text-brand-green">
+                {merchantAddress ? 'Wallet connected · Ready' : 'No wallet'}
+              </span>
             </div>
           </div>
         </div>
@@ -208,7 +196,6 @@ export default function POSMode() {
       {/* INPUT STAGE */}
       {stage === 'input' && (
         <>
-          {/* Amount display */}
           <div className="flex-1 flex flex-col items-center justify-center px-5">
             <p className="text-gray-500 text-sm mb-2 uppercase tracking-wider">Enter Amount</p>
             <div className="text-6xl font-black text-white mb-2 min-h-20 flex items-center">
@@ -219,7 +206,6 @@ export default function POSMode() {
             )}
           </div>
 
-          {/* Numpad */}
           <div className="px-5 pb-4">
             <div className="grid grid-cols-3 gap-3 mb-4">
               {keys.map(key => (
@@ -260,7 +246,22 @@ export default function POSMode() {
             {stage === 'waiting' && (
               <div className="absolute -inset-4 rounded-[2rem] animate-pulse-green" />
             )}
-            <QRDisplay />
+            {/* Real scannable QR code */}
+            <div className="bg-white rounded-3xl p-5 inline-block shadow-2xl">
+              {solanaPayUri ? (
+                <QRCodeSVG
+                  value={solanaPayUri}
+                  size={192}
+                  level="M"
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                />
+              ) : (
+                <div style={{ width: 192, height: 192, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 12 }}>
+                  No wallet address
+                </div>
+              )}
+            </div>
           </div>
 
           <p className="text-brand-green font-semibold text-sm flex items-center gap-2">
@@ -275,7 +276,7 @@ export default function POSMode() {
           </p>
 
           <p className="text-xs text-gray-600 mt-2">Solana Pay · Devnet</p>
-          <p className="font-mono text-xs text-gray-700 mt-1">CFi9...eYP3g</p>
+          <p className="font-mono text-xs text-gray-500 mt-1">{shortAddr}</p>
           {wsConnected && (
             <p className="text-xs text-green-400/60 mt-1 animate-pulse">
               ● WebSocket listener active
@@ -317,6 +318,16 @@ export default function POSMode() {
                 <p className="text-xs text-gray-400">Fan's GoalPoints</p>
               </div>
             </div>
+            {liveTxSig && (
+              <a
+                href={explorerUrl(liveTxSig)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 block text-xs text-center text-brand-green underline"
+              >
+                View on Solana Explorer ↗
+              </a>
+            )}
           </div>
 
           <button
@@ -329,7 +340,6 @@ export default function POSMode() {
         </div>
       )}
 
-      {/* Confetti */}
       {confetti && <ConfettiOverlay />}
     </div>
   );

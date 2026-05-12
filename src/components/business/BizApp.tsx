@@ -6,11 +6,14 @@ import Analytics from './Analytics';
 import Deals from './Deals';
 import BizReviews from './BizReviews';
 import SideNav from './SideNav';
+import BizOnboarding from './BizOnboarding';
 
 const NO_NAV = ['pos'];
 
 export default function BizApp() {
-  const { bizScreen } = useApp();
+  const { bizScreen, bizWalletAddress } = useApp();
+
+  if (!bizWalletAddress) return <BizOnboarding />;
 
   const renderScreen = () => {
     switch (bizScreen) {

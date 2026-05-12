@@ -53,6 +53,10 @@ interface AppState {
   fanInitialized: boolean;
   chainLoading: boolean;
 
+  // Business registration
+  bizWalletAddress: string | null;
+  bizName: string;
+
   setRole: (role: AppRole) => void;
   setFanScreen: (screen: FanScreen) => void;
   setBizScreen: (screen: BizScreen) => void;
@@ -64,6 +68,8 @@ interface AppState {
   setPosAmount: (a: string) => void;
   setShowPOSSuccess: (v: boolean) => void;
   setWorldIdVerified: (v: boolean) => void;
+  setBizWalletAddress: (addr: string | null) => void;
+  setBizName: (name: string) => void;
   goToFan: (screen: FanScreen) => void;
   goToBiz: (screen: BizScreen) => void;
   refreshBalances: () => Promise<void>;
@@ -89,6 +95,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [posAmount, setPosAmount] = useState('');
   const [showPOSSuccess, setShowPOSSuccess] = useState(false);
+
+  // Business registration
+  const [bizWalletAddress, setBizWalletAddress] = useState<string | null>(null);
+  const [bizName, setBizName] = useState('Tacos El Azteca');
 
   // On-chain state
   const [worldIdVerified, setWorldIdVerified] = useState(false);
@@ -200,10 +210,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         showPaymentSuccess, posAmount, showPOSSuccess,
         walletAddress, walletConnected, worldIdVerified,
         fanInitialized, chainLoading,
+        bizWalletAddress, bizName,
         setRole, setFanScreen, setBizScreen, setSelectedCountry,
         setBalance, setGoalPoints, setSelectedMerchant,
         setShowPaymentSuccess, setPosAmount, setShowPOSSuccess,
-        setWorldIdVerified, goToFan, goToBiz,
+        setWorldIdVerified, setBizWalletAddress, setBizName,
+        goToFan, goToBiz,
         refreshBalances, getProvider,
       }}
     >

@@ -3,7 +3,7 @@ import { useApp } from '../../lib/appContext';
 import { RECENT_BIZ_TRANSACTIONS, MATCHES, ANALYTICS_DATA } from '../../lib/mockData';
 
 export default function BizDashboard() {
-  const { setBizScreen } = useApp();
+  const { setBizScreen, bizWalletAddress, bizName, setBizWalletAddress } = useApp();
   const [revenue, setRevenue] = useState(312.50);
   const [txCount, setTxCount] = useState(28);
   const [newTx, setNewTx] = useState(false);
@@ -48,8 +48,19 @@ export default function BizDashboard() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <p className="text-gray-400 text-sm">Business Dashboard</p>
-            <h1 className="text-xl font-black text-white">🌮 Tacos El Azteca</h1>
+            <h1 className="text-xl font-black text-white">🌮 {bizName}</h1>
+            {bizWalletAddress && (
+              <p className="text-xs text-gray-600 font-mono mt-0.5">
+                {bizWalletAddress.slice(0, 6)}...{bizWalletAddress.slice(-4)}
+              </p>
+            )}
           </div>
+          <button
+            onClick={() => setBizWalletAddress(null)}
+            className="text-xs text-gray-600 hover:text-red-400 transition-colors"
+          >
+            Switch wallet
+          </button>
           <div className="flex items-center gap-2">
             {newTx && (
               <div className="flex items-center gap-1 bg-brand-green/20 border border-brand-green/30 rounded-full px-3 py-1 animate-bounce-in">
