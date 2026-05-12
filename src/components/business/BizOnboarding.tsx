@@ -1,21 +1,47 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useApp } from '../../lib/appContext';
 import { useIsDesktop } from '../../hooks/useIsDesktop';
+import { initializeMerchant } from '../../lib/solana';
 
 export default function BizOnboarding() {
-  const { setBizWalletAddress, setBizName, bizName } = useApp();
+  const { setBizWalletAddress, setBizName, bizName, getProvider } = useApp();
   const wallet = useWallet();
   const { setVisible } = useWalletModal();
   const isDesktop = useIsDesktop();
+  const [initializing, setInitializing] = useState(false);
 
-  // Auto-register as soon as wallet connects
+  // Initialize merchant account on-chain when wallet connects, then register
   useEffect(() => {
-    if (wallet.connected && wallet.publicKey) {
+    if (!wallet.connected || !wallet.publicKey) return;
+
+    const provider = getProvider();
+    if (!provider) {
+      // No provider yet (wallet adapter still settling) — just store address
       setBizWalletAddress(wallet.publicKey.toBase58());
+      return;
     }
-  }, [wallet.connected, wallet.publicKey, setBizWalletAddress]);
+
+    setInitializing(true);
+    const run = async () => {
+      try {
+        await initializeMerchant(provider, bizName, 'food');
+        console.log('[FanWallet] Merchant account initialized on-chain');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Already initialized is fine
+        if (!msg.includes('already in use') && !msg.includes('custom program error') && !msg.includes('0x0')) {
+          console.warn('[FanWallet] initializeMerchant (non-critical):', msg);
+        }
+      }
+      setBizWalletAddress(wallet.publicKey!.toBase58());
+      setInitializing(false);
+    };
+
+    const timer = setTimeout(run, 800);
+    return () => clearTimeout(timer);
+  }, [wallet.connected, wallet.publicKey]);
 
   return (
     <div className="min-h-screen field-bg flex flex-col items-center justify-center px-6 py-12">
@@ -81,6 +107,18 @@ export default function BizOnboarding() {
             <span className="text-gray-500">→</span>
           </button>
         </div>
+
+        {/* Initializing overlay */}
+        {initializing && (
+          <div className="glass-card rounded-2xl p-4 border border-brand-green/30 mb-4 flex items-center gap-3"
+               style={{ background: 'rgba(0,166,81,0.06)' }}>
+            <span className="w-5 h-5 border-2 border-brand-green border-t-transparent rounded-full animate-spin shrink-0" />
+            <div>
+              <p className="text-brand-green font-bold text-sm">Registering on-chain...</p>
+              <p className="text-xs text-gray-400">Initializing your merchant account on Solana</p>
+            </div>
+          </div>
+        )}
 
         {/* How it works */}
         <div className="glass-card rounded-2xl p-4 border border-brand-green/20 mb-4">

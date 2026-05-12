@@ -19,6 +19,9 @@ import {
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
+  createTransferInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
+  getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -164,8 +167,68 @@ export async function initializeFan(
 }
 
 /**
+ * Initialize merchant account on-chain (call once per merchant wallet).
+ * Creates the MerchantAccount PDA so fans can pay via the program.
+ */
+export async function initializeMerchant(
+  provider: AnchorProvider,
+  merchantName: string,
+  category = 'food'
+): Promise<string> {
+  const program = getProgram(provider);
+  const merchantWallet = provider.wallet.publicKey;
+  const [merchantPDA] = getMerchantAccountPDA(merchantWallet);
+
+  const tx = await program.methods
+    .initializeMerchant(merchantName, category)
+    .accounts({
+      merchantWallet,
+      merchantAccount: merchantPDA,
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+
+  return tx;
+}
+
+/**
+ * Direct SPL token transfer — no GoalPoints, no program accounts required.
+ * Used as fallback when the Anchor program call fails.
+ */
+async function processPaymentDirect(
+  provider: AnchorProvider,
+  amountUsdc: number,
+  merchantWalletAddress: string
+): Promise<string> {
+  const fanWallet = provider.wallet.publicKey;
+  const merchantWallet = new PublicKey(merchantWalletAddress);
+  const amountRaw = Math.round(amountUsdc * 1_000_000);
+
+  const fanAta = getAssociatedTokenAddressSync(USDC_MINT, fanWallet);
+  const merchantAta = getAssociatedTokenAddressSync(USDC_MINT, merchantWallet);
+
+  // Create merchant ATA if it doesn't exist yet (idempotent)
+  const createAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+    fanWallet, merchantAta, merchantWallet, USDC_MINT
+  );
+  const transferIx = createTransferInstruction(fanAta, merchantAta, fanWallet, amountRaw);
+
+  const tx = new Transaction().add(createAtaIx, transferIx);
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+  tx.recentBlockhash = blockhash;
+  tx.feePayer = fanWallet;
+
+  const signed = await provider.wallet.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize());
+  await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+  return sig;
+}
+
+/**
  * Process a USDC payment to a merchant.
- * Transfers USDC and mints GoalPoints to fan.
+ * Tries the Anchor program first (transfers USDC + mints GoalPoints).
+ * Falls back to a direct SPL transfer if the program call fails
+ * (e.g. merchant account not yet initialized).
  *
  * @param amountUsdc  Human-readable USDC amount (e.g. 12.50)
  * @param merchantWalletAddress  Merchant's public key string
@@ -175,40 +238,45 @@ export async function processPayment(
   amountUsdc: number,
   merchantWalletAddress: string
 ): Promise<string> {
-  const program = getProgram(provider);
-  const fanWallet = provider.wallet.publicKey;
-  const merchantWallet = new PublicKey(merchantWalletAddress);
+  // ── Anchor path (GoalPoints + on-chain tracking) ──────────────────────────
+  try {
+    const program = getProgram(provider);
+    const fanWallet = provider.wallet.publicKey;
+    const merchantWallet = new PublicKey(merchantWalletAddress);
+    const amountLamports = new BN(Math.round(amountUsdc * 1_000_000));
 
-  const amountLamports = new BN(Math.round(amountUsdc * 1_000_000));
+    const [fanPDA] = getFanAccountPDA(fanWallet);
+    const [merchantPDA] = getMerchantAccountPDA(merchantWallet);
+    const [programStatePDA] = getProgramStatePDA();
+    const [gpMint] = getGoalPointsMintPDA();
 
-  const [fanPDA] = getFanAccountPDA(fanWallet);
-  const [merchantPDA] = getMerchantAccountPDA(merchantWallet);
-  const [programStatePDA] = getProgramStatePDA();
-  const [gpMint] = getGoalPointsMintPDA();
+    const fanUsdcAta = await getAssociatedTokenAddress(USDC_MINT, fanWallet);
+    const merchantUsdcAta = await getAssociatedTokenAddress(USDC_MINT, merchantWallet);
+    const fanGpAta = await getAssociatedTokenAddress(gpMint, fanWallet);
 
-  const fanUsdcAta = await getAssociatedTokenAddress(USDC_MINT, fanWallet);
-  const merchantUsdcAta = await getAssociatedTokenAddress(USDC_MINT, merchantWallet);
-  const fanGpAta = await getAssociatedTokenAddress(gpMint, fanWallet);
-
-  const tx = await program.methods
-    .processPayment(amountLamports)
-    .accounts({
-      fanWallet,
-      fanAccount: fanPDA,
-      merchantAccount: merchantPDA,
-      programState: programStatePDA,
-      fanUsdcAta,
-      merchantUsdcAta,
-      fanGpAta,
-      goalPointsMint: gpMint,
-      usdcMint: USDC_MINT,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .rpc();
-
-  return tx;
+    return await program.methods
+      .processPayment(amountLamports)
+      .accounts({
+        fanWallet,
+        fanAccount: fanPDA,
+        merchantAccount: merchantPDA,
+        programState: programStatePDA,
+        fanUsdcAta,
+        merchantUsdcAta,
+        fanGpAta,
+        goalPointsMint: gpMint,
+        usdcMint: USDC_MINT,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  } catch (anchorErr) {
+    const msg = anchorErr instanceof Error ? anchorErr.message : String(anchorErr);
+    console.warn('[FanWallet] Anchor payment failed, using direct SPL transfer:', msg);
+    // Fall back to plain USDC transfer — no GoalPoints but payment succeeds
+    return await processPaymentDirect(provider, amountUsdc, merchantWalletAddress);
+  }
 }
 
 /**
