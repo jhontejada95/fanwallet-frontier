@@ -82,8 +82,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { connection } = useConnection();
   const wallet = useWallet();
 
-  const [role, setRole] = useState<AppRole>('picker');
-  const [fanScreen, setFanScreen] = useState<FanScreen>('splash');
+  const [role, setRole] = useState<AppRole>(() => {
+    try { return (localStorage.getItem('fw_role') as AppRole) || 'picker'; } catch { return 'picker'; }
+  });
+  const [fanScreen, setFanScreen] = useState<FanScreen>(() => {
+    try {
+      const saved = localStorage.getItem('fw_role');
+      return saved === 'fan' ? 'dashboard' : 'splash';
+    } catch { return 'splash'; }
+  });
   const [bizScreen, setBizScreen] = useState<BizScreen>('dashboard');
   const [selectedCountry, setSelectedCountry] = useState<AppState['selectedCountry']>(null);
 
@@ -96,9 +103,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [posAmount, setPosAmount] = useState('');
   const [showPOSSuccess, setShowPOSSuccess] = useState(false);
 
-  // Business registration
-  const [bizWalletAddress, setBizWalletAddress] = useState<string | null>(null);
-  const [bizName, setBizName] = useState('Tacos El Azteca');
+  // Business registration — persisted so session survives browser navigation
+  const [bizWalletAddress, setBizWalletAddress] = useState<string | null>(() => {
+    try { return localStorage.getItem('fw_biz_wallet'); } catch { return null; }
+  });
+  const [bizName, setBizName] = useState(() => {
+    try { return localStorage.getItem('fw_biz_name') || 'Tacos El Azteca'; } catch { return 'Tacos El Azteca'; }
+  });
 
   // On-chain state
   const [worldIdVerified, setWorldIdVerified] = useState(false);
@@ -192,6 +203,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [walletConnected, fanInitialized, chainLoading, getProvider]);
 
+  // Persist session state so navigation away (e.g. Solscan) doesn't lose context
+  useEffect(() => { try { localStorage.setItem('fw_role', role); } catch {} }, [role]);
+  useEffect(() => {
+    try {
+      if (bizWalletAddress) localStorage.setItem('fw_biz_wallet', bizWalletAddress);
+      else localStorage.removeItem('fw_biz_wallet');
+    } catch {}
+  }, [bizWalletAddress]);
+  useEffect(() => { try { localStorage.setItem('fw_biz_name', bizName); } catch {} }, [bizName]);
+
   const goToFan = (screen: FanScreen) => {
     setRole('fan');
     setFanScreen(screen);
@@ -200,6 +221,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const goToBiz = (screen: BizScreen) => {
     setRole('business');
     setBizScreen(screen);
+  };
+
+  // Wrap setBizWalletAddress to clear localStorage when set to null (Switch wallet)
+  const handleSetBizWalletAddress = (addr: string | null) => {
+    setBizWalletAddress(addr);
+    if (!addr) { try { localStorage.removeItem('fw_biz_wallet'); } catch {} }
   };
 
   return (
@@ -214,7 +241,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setRole, setFanScreen, setBizScreen, setSelectedCountry,
         setBalance, setGoalPoints, setSelectedMerchant,
         setShowPaymentSuccess, setPosAmount, setShowPOSSuccess,
-        setWorldIdVerified, setBizWalletAddress, setBizName,
+        setWorldIdVerified, setBizWalletAddress: handleSetBizWalletAddress, setBizName,
         goToFan, goToBiz,
         refreshBalances, getProvider,
       }}

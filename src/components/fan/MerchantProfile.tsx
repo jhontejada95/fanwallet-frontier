@@ -63,6 +63,8 @@ export default function MerchantProfile() {
         const merchantWallet = merchant.walletAddress || bizWalletAddress || 'CFi9X3i1hB6eFfLsapSmkPovCRDqhFAGa5a3LeYP3g';
         const sig = await processPayment(provider, payAmount, merchantWallet);
         setTxSig(sig);
+        // Optimistic GoalPoints — ensures fan sees points even if on-chain mint failed
+        setGoalPoints(goalPoints + Math.floor(payAmount * merchant.pointsMultiplier));
         await refreshBalances();
       } else {
         // ── Mock fallback ──

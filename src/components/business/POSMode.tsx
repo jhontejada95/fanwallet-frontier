@@ -3,7 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { useApp } from '../../lib/appContext';
-import { subscribeToPayments, getUsdcBalance, explorerUrl } from '../../lib/solana';
+import { getUsdcBalance, explorerUrl } from '../../lib/solana';
 
 // Pre-computed confetti so it doesn't re-randomize on parent re-renders
 const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => {
@@ -45,7 +45,6 @@ function ConfettiOverlay() {
 export default function POSMode() {
   const { setBizScreen, bizWalletAddress, bizName } = useApp();
   const wallet = useWallet();
-  const unsubscribeRef = useRef<(() => void) | null>(null);
   const [amount, setAmount] = useState('');
   const [stage, setStage] = useState<'input' | 'qr' | 'waiting' | 'success'>('input');
   const [confetti, setConfetti] = useState(false);
@@ -85,42 +84,40 @@ export default function POSMode() {
     }
   };
 
-  // Subscribe to real payments — use balance delta to handle merchant with existing funds
+  // Poll balance every 2.5 s — more reliable than onAccountChange WebSocket on devnet
   useEffect(() => {
     if (stage !== 'waiting' || !merchantAddress) return;
 
-    let merchantPK: PublicKey | null = null;
-    try {
-      merchantPK = new PublicKey(merchantAddress);
-    } catch {
-      return;
-    }
+    let pk: PublicKey;
+    try { pk = new PublicKey(merchantAddress); } catch { return; }
 
-    setWsConnected(true);
+    let active = true;
     const expectedUsdc = parseFloat(usdcAmount);
-    const pk = merchantPK;
+    setWsConnected(true);
 
-    // Snapshot balance before waiting so we detect the delta, not the total
-    let balanceBefore = 0;
-    getUsdcBalance(pk).then(bal => { balanceBefore = bal; });
+    const poll = async () => {
+      const balanceBefore = await getUsdcBalance(pk);
 
-    const unsub = subscribeToPayments(pk, (newBalance) => {
-      const delta = +(newBalance - balanceBefore).toFixed(6);
-      if (delta >= expectedUsdc * 0.99) {
-        setLiveTxSig('live');
-        const pts = Math.round(delta * 2);
-        setFanData({ flag: '🌐', country: 'On-chain', points: pts });
-        setStage('success');
-        setConfetti(true);
-        setTimeout(() => setConfetti(false), 3000);
+      while (active) {
+        await new Promise(r => setTimeout(r, 2500));
+        if (!active) break;
+        try {
+          const newBalance = await getUsdcBalance(pk);
+          const delta = +(newBalance - balanceBefore).toFixed(6);
+          if (delta >= expectedUsdc * 0.99) {
+            setLiveTxSig('live');
+            setFanData({ flag: '🌐', country: 'On-chain', points: Math.round(delta * 2) });
+            setStage('success');
+            setConfetti(true);
+            setTimeout(() => setConfetti(false), 3000);
+            break;
+          }
+        } catch { /* keep polling on network errors */ }
       }
-    });
-    unsubscribeRef.current = unsub;
-
-    return () => {
-      unsub();
-      setWsConnected(false);
     };
+
+    poll();
+    return () => { active = false; setWsConnected(false); };
   }, [stage, merchantAddress, usdcAmount]);
 
   const handleGenerateQR = () => {
