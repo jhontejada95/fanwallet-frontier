@@ -3,7 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { useApp } from '../../lib/appContext';
-import { subscribeToPayments, explorerUrl } from '../../lib/solana';
+import { subscribeToPayments, getUsdcBalance, explorerUrl } from '../../lib/solana';
 
 // Pre-computed confetti so it doesn't re-randomize on parent re-renders
 const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => {
@@ -85,7 +85,7 @@ export default function POSMode() {
     }
   };
 
-  // Subscribe to real payments on the MERCHANT wallet (not the currently connected one)
+  // Subscribe to real payments — use balance delta to handle merchant with existing funds
   useEffect(() => {
     if (stage !== 'waiting' || !merchantAddress) return;
 
@@ -98,11 +98,17 @@ export default function POSMode() {
 
     setWsConnected(true);
     const expectedUsdc = parseFloat(usdcAmount);
+    const pk = merchantPK;
 
-    const unsub = subscribeToPayments(merchantPK, (receivedUsdc, sig) => {
-      if (receivedUsdc >= expectedUsdc * 0.99) {
-        setLiveTxSig(sig);
-        const pts = Math.round(receivedUsdc * 2);
+    // Snapshot balance before waiting so we detect the delta, not the total
+    let balanceBefore = 0;
+    getUsdcBalance(pk).then(bal => { balanceBefore = bal; });
+
+    const unsub = subscribeToPayments(pk, (newBalance) => {
+      const delta = +(newBalance - balanceBefore).toFixed(6);
+      if (delta >= expectedUsdc * 0.99) {
+        setLiveTxSig('live');
+        const pts = Math.round(delta * 2);
         setFanData({ flag: '🌐', country: 'On-chain', points: pts });
         setStage('success');
         setConfetti(true);

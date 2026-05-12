@@ -85,41 +85,52 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Stable callback ref to avoid restarting the effect on every render
   const onResultRef = useRef(onResult);
   useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
-    let rafId: number;
+    let intervalId: ReturnType<typeof setInterval>;
     let active = true;
+    let found = false;
 
     const scan = () => {
-      if (!active) return;
+      if (!active || found) return;
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      if (canvas && video && video.readyState === 4) {
-        const w = video.videoWidth;
-        const h = video.videoHeight;
-        if (w > 0 && h > 0) {
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d', { willReadFrequently: true });
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, w, h);
-            const imgData = ctx.getImageData(0, 0, w, h);
-            const code = jsQR(imgData.data, w, h, { inversionAttempts: 'dontInvert' });
-            if (code?.data) {
-              const parsed = parseSolanaPayQR(code.data);
-              if (parsed) {
-                onResultRef.current(parsed);
-                return; // stop loop — result found
-              }
-            }
-          }
+      // readyState >= 2 = HAVE_CURRENT_DATA or better — video frame is available
+      if (!canvas || !video || video.readyState < 2) return;
+      const srcW = video.videoWidth;
+      const srcH = video.videoHeight;
+      if (srcW === 0 || srcH === 0) return;
+
+      // Scale down to max 640px wide for jsQR performance
+      const scale = Math.min(640 / srcW, 1);
+      const w = Math.floor(srcW * scale);
+      const h = Math.floor(srcH * scale);
+      canvas.width = w;
+      canvas.height = h;
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, w, h);
+
+      let imgData: ImageData | null = null;
+      try {
+        imgData = ctx.getImageData(0, 0, w, h);
+      } catch {
+        // canvas tainted or restricted in this webview — skip frame
+        return;
+      }
+
+      const code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
+      if (code?.data) {
+        const parsed = parseSolanaPayQR(code.data);
+        if (parsed) {
+          found = true;
+          onResultRef.current(parsed);
         }
       }
-      rafId = requestAnimationFrame(scan);
     };
 
     const start = async () => {
@@ -131,9 +142,11 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
         const video = videoRef.current;
         if (!video) return;
         video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
         await video.play();
         setReady(true);
-        rafId = requestAnimationFrame(scan);
+        // Use setInterval — more reliable than rAF in PWA/in-app browsers
+        intervalId = setInterval(scan, 200);
       } catch {
         setCameraError('Camera access denied. Allow camera permissions or enter the address manually.');
       }
@@ -142,7 +155,7 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
     start();
     return () => {
       active = false;
-      cancelAnimationFrame(rafId);
+      clearInterval(intervalId);
       stream?.getTracks().forEach(t => t.stop());
     };
   }, []); // run once
