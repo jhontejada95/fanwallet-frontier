@@ -37,3 +37,20 @@ test-ledger/
 # Solana keypairs (never commit)
 *.json.bak
 deploy-keypair.json
+
+# Deck extracted zip artifacts
+DECK/extracted/
+
+# Claude Design / exported zips — track only the source zip
+desing made by claude design/*.zip
+
+# Coverage
+coverage/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# PWA generated files
+sw.js
+workbox-*.js
