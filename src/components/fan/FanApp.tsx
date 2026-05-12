@@ -15,7 +15,6 @@ import FanProfile from './FanProfile';
 import Send from './Send';
 import Split from './Split';
 import FanAgent from './FanAgent';
-import WorldIDVerify from './WorldIDVerify';
 import SmartWallet from './SmartWallet';
 import BottomNav from './BottomNav';
 
@@ -41,7 +40,6 @@ export default function FanApp() {
       case 'send':        return <Send />;
       case 'split':       return <Split />;
       case 'agent':       return <FanAgent onClose={() => setFanScreen('dashboard')} />;
-      case 'worldid':     return <WorldIDVerify onVerified={() => setFanScreen('dashboard')} onSkip={() => setFanScreen('dashboard')} />;
       case 'smartWallet': return <SmartWallet />;
       default:            return <Dashboard />;
     }

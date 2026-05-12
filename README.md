@@ -28,7 +28,6 @@ FanWallet is a dual-role mobile PWA:
 - Connect Phantom wallet, pick your country, and pay any participating merchant with USDC
 - Earn **GoalPoints** (real SPL tokens minted on Solana devnet) on every purchase
 - Private payments via **Vanish** ZK-shielded flow
-- **World ID** verification unlocks 2x points multiplier
 - AI-powered **FanAgent** recommends merchants, answers questions, and splits bills
 - Scan any merchant's **Solana Pay QR** to pay instantly
 
@@ -73,7 +72,6 @@ No login required — works as demo without a wallet. Connect Phantom on mobile 
 │  ├── Merchant Profile     ├── Deal Manager           │
 │  ├── GoalPoints           ├── Review Manager         │
 │  ├── FanAgent AI          └── QR Generator           │
-│  ├── World ID verify                                  │
 │  └── Vanish private pay                              │
 └───────────────────┬─────────────────────────────────┘
                     │
@@ -113,7 +111,6 @@ Payment fallback: direct SPL createTransferInstruction
 |---------|-------------|
 | **Phantom** | Primary wallet — embedded in PWA, signs all transactions |
 | **Solana Pay** | QR URI standard for POS-to-fan payment flow |
-| **World ID** | Proof-of-human verification stored on-chain |
 | **Vanish** | ZK-shielded private merchant payments |
 | **Coinbase x402** | Pay-per-query merchant insights API |
 | **LI.FI** | Cross-chain bridge (60+ chains → USDC on Solana) |

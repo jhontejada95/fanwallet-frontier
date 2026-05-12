@@ -29,7 +29,7 @@ export type FanScreen =
   | 'splash' | 'onboarding' | 'dashboard' | 'deposit'
   | 'pay' | 'send' | 'split' | 'map' | 'merchant'
   | 'review' | 'goalpoints' | 'stamps' | 'profile'
-  | 'agent' | 'worldid' | 'smartWallet';
+  | 'agent' | 'smartWallet';
 export type BizScreen =
   | 'dashboard' | 'pos' | 'analytics' | 'deals' | 'reviews'
   | 'loyalty' | 'profile-editor' | 'reports' | 'qr-generator';
@@ -49,7 +49,6 @@ interface AppState {
   // On-chain state
   walletAddress: string | null;
   walletConnected: boolean;
-  worldIdVerified: boolean;
   fanInitialized: boolean;
   chainLoading: boolean;
 
@@ -67,7 +66,6 @@ interface AppState {
   setShowPaymentSuccess: (v: boolean) => void;
   setPosAmount: (a: string) => void;
   setShowPOSSuccess: (v: boolean) => void;
-  setWorldIdVerified: (v: boolean) => void;
   setBizWalletAddress: (addr: string | null) => void;
   setBizName: (name: string) => void;
   goToFan: (screen: FanScreen) => void;
@@ -112,7 +110,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
 
   // On-chain state
-  const [worldIdVerified, setWorldIdVerified] = useState(false);
   const [fanInitialized, setFanInitialized] = useState(false);
   const [chainLoading, setChainLoading] = useState(false);
 
@@ -149,7 +146,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const fanData = await getFanAccount(provider, wallet.publicKey);
         if (fanData) {
           setFanInitialized(true);
-          setWorldIdVerified(fanData.worldIdVerified);
           // Use on-chain values if they differ
           if (gp > 0 || fanData.totalPointsEarned > 0) {
             setGoalPoints(Math.max(gp, fanData.totalPointsEarned));
@@ -172,7 +168,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBalance(0);
       setGoalPoints(342);
       setFanInitialized(false);
-      setWorldIdVerified(false);
     }
   }, [walletConnected, wallet.publicKey]);
 
@@ -235,13 +230,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         role, fanScreen, bizScreen, selectedCountry,
         balance, goalPoints, selectedMerchant,
         showPaymentSuccess, posAmount, showPOSSuccess,
-        walletAddress, walletConnected, worldIdVerified,
+        walletAddress, walletConnected,
         fanInitialized, chainLoading,
         bizWalletAddress, bizName,
         setRole, setFanScreen, setBizScreen, setSelectedCountry,
         setBalance, setGoalPoints, setSelectedMerchant,
         setShowPaymentSuccess, setPosAmount, setShowPOSSuccess,
-        setWorldIdVerified, setBizWalletAddress: handleSetBizWalletAddress, setBizName,
+        setBizWalletAddress: handleSetBizWalletAddress, setBizName,
         goToFan, goToBiz,
         refreshBalances, getProvider,
       }}

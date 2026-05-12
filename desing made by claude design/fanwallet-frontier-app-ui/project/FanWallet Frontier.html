@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>FanWallet Frontier — Brand & App UI</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css"/>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="brand.jsx"></script>
+  <script type="text/babel" src="screens-a.jsx"></script>
+  <script type="text/babel" src="screens-b.jsx"></script>
+  <script type="text/babel" src="marketing.jsx"></script>
+
+  <script type="text/babel" data-presets="react">
+    function App() {
+      return (
+        <DesignCanvas>
+          {/* Intro / cover */}
+          <DCSection id="cover" title="FanWallet Frontier" subtitle="Crypto payments wallet for World Cup '26 · Brand identity + App UI">
+            <DCArtboard id="cover-art" label="Cover" width={820} height={300}>
+              <div style={{
+                width:'100%', height:'100%', background:'#0a0e1a', padding:'36px 40px',
+                position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'space-between'
+              }}>
+                <div style={{ position:'absolute', left:'-10%', top:'-30%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(0,166,81,0.28) 0%, transparent 60%)' }}/>
+                <div style={{ position:'absolute', right:'-10%', bottom:'-40%', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(255,215,0,0.16) 0%, transparent 60%)' }}/>
+                <div style={{ position:'relative', display:'flex', alignItems:'center', gap:16 }}>
+                  <LogoMark size={56}/>
+                  <div>
+                    <div className="display" style={{ fontSize:38, letterSpacing:'-0.035em', color:'#fff' }}>fanwallet<span style={{ color:'#00A651' }}>.</span></div>
+                    <div className="eyebrow" style={{ fontSize:10, color:'#00A651', letterSpacing:'0.32em', marginTop:4 }}>FRONTIER · WC26</div>
+                  </div>
+                </div>
+                <div style={{ position:'relative' }}>
+                  <div className="display" style={{ fontSize:54, lineHeight:0.95, color:'#fff', letterSpacing:'-0.04em' }}>
+                    Pay like a local.<br/>Earn like a <span style={{ color:'#FFD700' }}>champion.</span>
+                  </div>
+                  <div style={{ color:'#B6BECB', marginTop:10, fontSize:13 }}>
+                    Logo · App icon · 6 mobile screens · Marketing banner · Pitch hero
+                  </div>
+                </div>
+              </div>
+            </DCArtboard>
+          </DCSection>
+
+          {/* Brand */}
+          <BrandArtboards/>
+
+          {/* App screens */}
+          <DCSection id="screens" title="App Screens" subtitle="iPhone · 390×844 · Dark mode native">
+            <DCArtboard id="s1-role" label="01 · Role picker" width={390} height={844}>
+              <ScreenRolePicker/>
+            </DCArtboard>
+            <DCArtboard id="s2-dash" label="02 · Fan dashboard" width={390} height={844}>
+              <ScreenDashboard/>
+            </DCArtboard>
+            <DCArtboard id="s3-points" label="03 · GoalPoints" width={390} height={844}>
+              <ScreenGoalPoints/>
+            </DCArtboard>
+            <DCArtboard id="s4-qr" label="04 · Payment QR" width={390} height={844}>
+              <ScreenPayQR/>
+            </DCArtboard>
+            <DCArtboard id="s5-pos" label="05 · Business POS" width={390} height={844}>
+              <ScreenBusinessPOS/>
+            </DCArtboard>
+            <DCArtboard id="s6-success" label="06 · Success state" width={390} height={844}>
+              <ScreenSuccess/>
+            </DCArtboard>
+          </DCSection>
+
+          {/* Marketing */}
+          <DCSection id="marketing" title="Marketing & Pitch" subtitle="Social card + investor hero slide">
+            <DCArtboard id="og-banner" label="Open Graph banner · 1200×630" width={1200} height={630}>
+              <MarketingBanner/>
+            </DCArtboard>
+            <DCArtboard id="pitch-hero" label="Pitch deck · Hero slide · 1920×1080" width={1920} height={1080}>
+              <PitchSlide/>
+            </DCArtboard>
+          </DCSection>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

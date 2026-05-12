@@ -149,8 +149,6 @@ export default function RolePicker() {
             <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, color: '#B6BECB', fontSize: 13 }}>SOLANA</span>
             <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#6b7280', display: 'inline-block' }} />
             <span>USDC</span>
-            <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#6b7280', display: 'inline-block' }} />
-            <span>World ID</span>
           </div>
         </div>
       </div>

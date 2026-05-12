@@ -3,7 +3,6 @@ import { useApp } from '../../lib/appContext';
 import { useIsDesktop } from '../../hooks/useIsDesktop';
 import { MATCHES, MERCHANTS, TRANSACTIONS } from '../../lib/mockData';
 import FanAgent from './FanAgent';
-import WorldIDVerify from './WorldIDVerify';
 import { LogoMark } from '../LogoMark';
 
 const IDeposit = () => <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v12m0 0l-5-5m5 5l5-5"/><path d="M4 19h16"/></svg>;
@@ -25,11 +24,10 @@ const ACTIONS = [
 export default function Dashboard() {
   const {
     balance, goalPoints, selectedCountry, setFanScreen, setSelectedMerchant,
-    walletAddress, walletConnected, worldIdVerified, chainLoading, refreshBalances,
+    walletAddress, walletConnected, chainLoading, refreshBalances,
   } = useApp();
   const isDesktop = useIsDesktop();
   const [showAgent, setShowAgent] = useState(false);
-  const [showWorldID, setShowWorldID] = useState(false);
 
   const displayBalance = walletConnected ? balance : (balance > 0 ? balance : 124.50);
   const shortAddr = walletAddress ? walletAddress.slice(0, 4) + '…' + walletAddress.slice(-4) : null;
@@ -85,7 +83,7 @@ export default function Dashboard() {
           <div style={{ fontFamily: '"Archivo Black", sans-serif', fontSize: 26, color: '#FFD700', lineHeight: 0.9 }}>{goalPoints}</div>
           <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#FFD700' }}>GOALPOINTS</div>
         </div>
-        <div style={{ fontSize: 11, color: '#d1c280', marginTop: 2 }}>{worldIdVerified ? '2× Multiplier active · World ID verified' : `≈ $${(goalPoints / 100).toFixed(2)} redeemable`}</div>
+        <div style={{ fontSize: 11, color: '#d1c280', marginTop: 2 }}>{`≈ $${(goalPoints / 100).toFixed(2)} redeemable`}</div>
       </div>
       <IChevron />
     </div>
@@ -166,7 +164,6 @@ export default function Dashboard() {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0e1a' }} className="no-scrollbar">
         {showAgent && <FanAgent onClose={() => setShowAgent(false)} />}
-        {showWorldID && <WorldIDVerify onVerified={() => setShowWorldID(false)} onSkip={() => setShowWorldID(false)} />}
 
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 40px 60px' }}>
 
@@ -181,9 +178,6 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setShowAgent(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, background: '#131826', border: '1px solid rgba(255,255,255,0.06)', color: '#B6BECB', cursor: 'pointer', fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 13 }}>
                 🤖 AI Agent
-              </button>
-              <button onClick={() => setShowWorldID(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 12, background: worldIdVerified ? 'rgba(0,166,81,0.15)' : '#131826', border: `1px solid ${worldIdVerified ? 'rgba(0,166,81,0.4)' : 'rgba(255,255,255,0.06)'}`, color: worldIdVerified ? '#00A651' : '#B6BECB', cursor: 'pointer', fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 13 }}>
-                🌍 {worldIdVerified ? 'Verified ✓' : 'Verify Human'}
               </button>
             </div>
           </div>
@@ -229,7 +223,6 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0e1a', overflowY: 'auto', paddingBottom: 120 }} className="no-scrollbar">
       {showAgent && <FanAgent onClose={() => setShowAgent(false)} />}
-      {showWorldID && <WorldIDVerify onVerified={() => setShowWorldID(false)} onSkip={() => setShowWorldID(false)} />}
 
       {/* Mobile top bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 22px 12px' }}>
@@ -244,7 +237,6 @@ export default function Dashboard() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setShowAgent(true)} style={{ width: 36, height: 36, borderRadius: 12, background: '#131826', display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.06)', color: '#B6BECB', cursor: 'pointer', fontSize: 16 }}>🤖</button>
-          <button onClick={() => setShowWorldID(true)} style={{ width: 36, height: 36, borderRadius: 12, background: worldIdVerified ? 'rgba(0,166,81,0.2)' : '#131826', display: 'grid', placeItems: 'center', border: `1px solid ${worldIdVerified ? 'rgba(0,166,81,0.5)' : 'rgba(255,255,255,0.06)'}`, color: worldIdVerified ? '#00A651' : '#B6BECB', cursor: 'pointer' }}>🌍</button>
         </div>
       </div>
 

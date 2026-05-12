@@ -54,8 +54,6 @@ export default function Splash() {
         <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, color: '#6b7280' }}>SOLANA</span>
         <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#4b5563', display: 'inline-block' }} />
         <span>USDC</span>
-        <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#4b5563', display: 'inline-block' }} />
-        <span>World ID</span>
       </div>
     </div>
   );

@@ -9,7 +9,6 @@ const EARN_WAYS = [
   { emoji: '🏟️', title: 'Check in at a stadium', sub: 'Geofenced to host venues', pts: '+250', color: '#EF4444' },
   { emoji: '👥', title: 'Refer a fellow fan', sub: 'Both of you earn', pts: '+500', color: '#00A651' },
   { emoji: '🔥', title: 'Leave a verified review', sub: 'After any FanWallet payment', pts: '+50', color: '#FFD700' },
-  { emoji: '🌍', title: 'World ID verification', sub: 'Verify humanity → 2× on all payments', pts: '2×', color: '#FFD700' },
 ];
 
 const REDEEM_OPTIONS = [
@@ -27,8 +26,8 @@ const HISTORY = [
   { emoji: '🎁', label: 'Redeemed · Hotel voucher', pts: -100, date: 'Mar 10' },
 ];
 
-const BalanceCard = ({ goalPoints, chainLoading, worldIdVerified, walletConnected, refreshBalances }: {
-  goalPoints: number; chainLoading: boolean; worldIdVerified: boolean; walletConnected: boolean; refreshBalances: () => void;
+const BalanceCard = ({ goalPoints, chainLoading, walletConnected, refreshBalances }: {
+  goalPoints: number; chainLoading: boolean; walletConnected: boolean; refreshBalances: () => void;
 }) => (
   <div style={{ position: 'relative', background: '#131826', border: '1px solid rgba(255,215,0,0.25)', borderRadius: 24, padding: '24px 22px 22px', overflow: 'hidden', boxShadow: '0 20px 60px -20px rgba(255,215,0,0.4)' }}>
     <div style={{ position: 'absolute', right: -50, top: -50, width: 240, height: 240, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,215,0,0.16) 0%, transparent 65%)', pointerEvents: 'none' }} />
@@ -48,17 +47,6 @@ const BalanceCard = ({ goalPoints, chainLoading, worldIdVerified, walletConnecte
     <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: 'rgba(255,215,0,0.7)', marginTop: 6 }}>
       POINTS · ≈ ${(goalPoints / 100).toFixed(2)} redeemable
     </div>
-    {worldIdVerified && (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, padding: '8px 12px', background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.25)', borderRadius: 12 }}>
-        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#FFD700', color: '#1a1300', display: 'grid', placeItems: 'center' }}>
-          <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4 14h7l-2 8 10-13h-7l1-7z"/></svg>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 800, fontSize: 12, color: '#FFD700' }}>2× Multiplier Active</div>
-          <div style={{ fontSize: 10.5, color: '#d1c280' }}>World ID verified</div>
-        </div>
-      </div>
-    )}
     {walletConnected && (
       <button onClick={refreshBalances} style={{ marginTop: 8, fontSize: 11, color: 'rgba(255,215,0,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>↻ Refresh balance</button>
     )}
@@ -78,7 +66,7 @@ const TabBar = ({ tab, setTab }: { tab: string; setTab: (t: 'earn' | 'redeem' | 
 export default function GoalPoints() {
   const {
     goalPoints, setGoalPoints, walletConnected, chainLoading,
-    worldIdVerified, getProvider, refreshBalances,
+    getProvider, refreshBalances,
   } = useApp();
   const isDesktop = useIsDesktop();
 
@@ -183,7 +171,7 @@ export default function GoalPoints() {
           <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 24 }}>
             {/* Left: balance + tabs */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <BalanceCard goalPoints={goalPoints} chainLoading={chainLoading} worldIdVerified={worldIdVerified} walletConnected={walletConnected} refreshBalances={refreshBalances} />
+              <BalanceCard goalPoints={goalPoints} chainLoading={chainLoading} walletConnected={walletConnected} refreshBalances={refreshBalances} />
               <TabBar tab={tab} setTab={setTab} />
             </div>
             {/* Right: tab content */}
@@ -210,7 +198,7 @@ export default function GoalPoints() {
         </div>
       </div>
       <div style={{ margin: '8px 16px 0' }}>
-        <BalanceCard goalPoints={goalPoints} chainLoading={chainLoading} worldIdVerified={worldIdVerified} walletConnected={walletConnected} refreshBalances={refreshBalances} />
+        <BalanceCard goalPoints={goalPoints} chainLoading={chainLoading} walletConnected={walletConnected} refreshBalances={refreshBalances} />
       </div>
       <div style={{ margin: '18px 16px 0' }}>
         <TabBar tab={tab} setTab={setTab} />

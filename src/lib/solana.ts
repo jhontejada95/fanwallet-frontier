@@ -118,7 +118,7 @@ export async function getSolBalance(wallet: PublicKey): Promise<number> {
 export async function getFanAccount(
   provider: AnchorProvider,
   fanWallet: PublicKey
-): Promise<{ totalSpentUsdc: number; totalPointsEarned: number; reviewsSubmitted: number; worldIdVerified: boolean } | null> {
+): Promise<{ totalSpentUsdc: number; totalPointsEarned: number; reviewsSubmitted: number } | null> {
   try {
     const program = getProgram(provider);
     const [fanPDA] = getFanAccountPDA(fanWallet);
@@ -128,7 +128,6 @@ export async function getFanAccount(
       totalSpentUsdc: acc.totalSpentUsdc.toNumber() / 1_000_000,
       totalPointsEarned: acc.totalPointsEarned.toNumber(),
       reviewsSubmitted: acc.reviewsSubmitted,
-      worldIdVerified: acc.worldIdVerified,
     };
   } catch {
     return null;
@@ -347,37 +346,6 @@ export async function redeemPoints(
       fanGpAta,
       goalPointsMint: gpMint,
       tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .rpc();
-
-  return tx;
-}
-
-/**
- * Record World ID verification on-chain.
- * Activates 2x GoalPoints multiplier.
- *
- * @param nullifierHashHex  32-byte nullifier as hex string (from World ID)
- */
-export async function verifyWorldId(
-  provider: AnchorProvider,
-  nullifierHashHex: string
-): Promise<string> {
-  const program = getProgram(provider);
-  const fanWallet = provider.wallet.publicKey;
-
-  const [fanPDA] = getFanAccountPDA(fanWallet);
-
-  // Convert hex string to [u8; 32]
-  const hex = nullifierHashHex.replace("0x", "").padStart(64, "0");
-  const nullifierBytes = Array.from(Buffer.from(hex, "hex"));
-
-  const tx = await program.methods
-    .verifyWorldId(nullifierBytes)
-    .accounts({
-      fanWallet,
-      fanAccount: fanPDA,
       systemProgram: SystemProgram.programId,
     })
     .rpc();
