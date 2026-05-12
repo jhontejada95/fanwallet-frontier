@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import jsQR from 'jsqr';
 import { useApp } from '../../lib/appContext';
 import { LogoMark } from '../LogoMark';
 import { useIsDesktop } from '../../hooks/useIsDesktop';
@@ -72,7 +73,7 @@ function parseSolanaPayQR(raw: string): SolanaPayData | null {
   return null;
 }
 
-/* ── Camera QR scanner (mobile only) ────────────────────────────────────── */
+/* ── Camera QR scanner — jsQR for universal browser support ─────────────── */
 interface ScannerProps {
   onResult: (data: SolanaPayData) => void;
   onManual: () => void;
@@ -80,13 +81,46 @@ interface ScannerProps {
 
 function QRScanner({ onResult, onManual }: ScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [hasBarcodeDetector] = useState(() => 'BarcodeDetector' in window);
+  const [ready, setReady] = useState(false);
+
+  // Stable callback ref to avoid restarting the effect on every render
+  const onResultRef = useRef(onResult);
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
     let rafId: number;
     let active = true;
+
+    const scan = () => {
+      if (!active) return;
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      if (canvas && video && video.readyState === 4) {
+        const w = video.videoWidth;
+        const h = video.videoHeight;
+        if (w > 0 && h > 0) {
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, w, h);
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const code = jsQR(imgData.data, w, h, { inversionAttempts: 'dontInvert' });
+            if (code?.data) {
+              const parsed = parseSolanaPayQR(code.data);
+              if (parsed) {
+                onResultRef.current(parsed);
+                return; // stop loop — result found
+              }
+            }
+          }
+        }
+      }
+      rafId = requestAnimationFrame(scan);
+    };
 
     const start = async () => {
       try {
@@ -98,26 +132,10 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
         if (!video) return;
         video.srcObject = stream;
         await video.play();
-
-        if (hasBarcodeDetector) {
-          const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
-          const scan = async () => {
-            if (!active) return;
-            try {
-              if (video.readyState === 4) {
-                const barcodes: Array<{ rawValue: string }> = await detector.detect(video);
-                if (barcodes.length > 0) {
-                  const parsed = parseSolanaPayQR(barcodes[0].rawValue);
-                  if (parsed) { onResult(parsed); return; }
-                }
-              }
-            } catch { /* ignore decode errors */ }
-            rafId = requestAnimationFrame(scan);
-          };
-          rafId = requestAnimationFrame(scan);
-        }
+        setReady(true);
+        rafId = requestAnimationFrame(scan);
       } catch {
-        setCameraError('Camera access denied. Please allow camera permissions or enter the address manually.');
+        setCameraError('Camera access denied. Allow camera permissions or enter the address manually.');
       }
     };
 
@@ -127,7 +145,7 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
       cancelAnimationFrame(rafId);
       stream?.getTracks().forEach(t => t.stop());
     };
-  }, [hasBarcodeDetector, onResult]);
+  }, []); // run once
 
   if (cameraError) {
     return (
@@ -146,29 +164,43 @@ function QRScanner({ onResult, onManual }: ScannerProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Hidden canvas used for frame capture — never displayed */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
       <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', background: '#000', aspectRatio: '1', width: '100%' }}>
         <video
           ref={videoRef}
           playsInline
           muted
+          autoPlay
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
+
         {/* Scan frame overlay */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div style={{ width: '60%', aspectRatio: '1', position: 'relative' }}>
+          {/* Dark vignette outside scan area */}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
+          <div style={{ width: '62%', aspectRatio: '1', position: 'relative', zIndex: 1 }}>
+            {/* Cutout: transparent inside, dark outside (via box-shadow) */}
+            <div style={{ position: 'absolute', inset: 0, boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)', borderRadius: 4 }} />
             {(['tl','tr','bl','br'] as const).map(pos => <CornerBracket key={pos} pos={pos} />)}
           </div>
         </div>
-        {/* Scan line animation */}
-        <div style={{ position: 'absolute', left: '20%', right: '20%', height: 2, background: 'linear-gradient(90deg, transparent, #00A651, transparent)', animation: 'scanLine 2s ease-in-out infinite', top: '30%' }} />
-        <style>{`@keyframes scanLine { 0%,100%{top:20%} 50%{top:80%} }`}</style>
-      </div>
 
-      {!hasBarcodeDetector && (
-        <div style={{ fontSize: 11, color: '#FFD700', textAlign: 'center', background: 'rgba(255,215,0,0.08)', borderRadius: 10, padding: '8px 12px', border: '1px solid rgba(255,215,0,0.2)' }}>
-          ⚠ Auto-detection not available in this browser. Use the button below to enter address manually.
-        </div>
-      )}
+        {/* Scan line — only shown once camera is ready */}
+        {ready && (
+          <div style={{ position: 'absolute', left: '19%', right: '19%', height: 2.5, borderRadius: 2, background: 'linear-gradient(90deg, transparent, #00A651 20%, #00C962 50%, #00A651 80%, transparent)', animation: 'scanLine 2s ease-in-out infinite', zIndex: 2 }} />
+        )}
+        <style>{`@keyframes scanLine { 0%,100%{top:19%} 50%{top:81%} }`}</style>
+
+        {/* Status badge */}
+        {ready && (
+          <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', borderRadius: 999, padding: '5px 14px', display: 'flex', alignItems: 'center', gap: 6, zIndex: 2 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00A651', animation: 'pulse 1.5s ease-in-out infinite', display: 'inline-block' }} />
+            <span style={{ fontFamily: 'Archivo, sans-serif', fontWeight: 700, fontSize: 11, color: '#fff' }}>Scanning…</span>
+          </div>
+        )}
+      </div>
 
       <div style={{ textAlign: 'center', fontSize: 12, color: '#6b7280' }}>
         Point the camera at the merchant's Solana Pay QR code
